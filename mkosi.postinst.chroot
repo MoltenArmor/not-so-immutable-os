@@ -1,0 +1,20 @@
+#!/bin/sh
+# SPDX-License-Identifier: LGPL-2.1-or-later
+set -ue
+
+# Debian does not use /usr/lib/pam.d by now.
+# if [ -d /etc/pam.d ]; then
+#     find /etc/pam.d -mindepth 1 -exec cp {} /usr/lib/pam.d \;
+#     rmdir /etc/pam.d
+# fi
+
+# Remove xterm.
+apt purge --autoremove -y xterm
+
+sed -i '/^# C.UTF-8.*/c\C.UTF-8 UTF-8' /etc/locale.gen && \
+sed -i '/^# en_US.UTF-8.*/c\en_US.UTF-8 UTF-8' /etc/locale.gen && \
+sed -i '/^# zh_CN.UTF-8.*/c\zh_CN.UTF-8 UTF-8' /etc/locale.gen && \
+locale-gen
+
+# Create sudo symlink.
+ln -s doas /usr/bin/sudo
