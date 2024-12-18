@@ -1,20 +1,28 @@
 #!/bin/sh
 # SPDX-License-Identifier: LGPL-2.1-or-later
-set -ue
+set -e
 
-# Debian does not use /usr/lib/pam.d by now.
-# if [ -d /etc/pam.d ]; then
-#     find /etc/pam.d -mindepth 1 -exec cp {} /usr/lib/pam.d \;
-#     rmdir /etc/pam.d
-# fi
+if command -v authselect >/dev/null; then
+    # authselect 1.5.0 renamed the minimal profile to the local profile without keeping backwards compat so
+    # let's use the new name if it exists.
+    if [ -d /usr/share/authselect/default/local ]; then
+        PROFILE=local
+    else
+        PROFILE=minimal
+    fi
 
-# Remove xterm.
-apt purge --autoremove -y xterm
+    authselect select "$PROFILE"
 
-sed -i '/^# C.UTF-8.*/c\C.UTF-8 UTF-8' /etc/locale.gen && \
-sed -i '/^# en_US.UTF-8.*/c\en_US.UTF-8 UTF-8' /etc/locale.gen && \
-sed -i '/^# zh_CN.UTF-8.*/c\zh_CN.UTF-8 UTF-8' /etc/locale.gen && \
-locale-gen
+    if authselect list-features "$PROFILE" | grep -q "with-homed"; then
+        authselect enable-feature with-homed
+    fi
+fi
 
-# Create sudo symlink.
-ln -s doas /usr/bin/sudo
+if [[ -d /etc/pam.d ]]; then
+    find /etc/pam.d -mindepth 1 -exec mv {} /usr/lib/pam.d \;
+    rmdir /etc/pam.d
+fi
+
+# Get rid of obsolete stuff in the pam stack.
+find /usr/lib/pam.d/ -mindepth 1 -exec sed --in-place '/pam_shells.so/d' {} \;
+find /usr/lib/pam.d/ -mindepth 1 -exec sed --in-place '/pam_securetty.so/d' {} \;
