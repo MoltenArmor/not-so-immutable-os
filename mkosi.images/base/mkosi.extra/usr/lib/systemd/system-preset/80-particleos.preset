@@ -12,3 +12,6 @@ enable systemd-homed-firstboot.service
 
 # Use iwd instead of wpasupplicant
 disable wpa_supplicant*.service
+
+# In order to avoid a Debian-specific bug.
+disable systemd-update.timer
