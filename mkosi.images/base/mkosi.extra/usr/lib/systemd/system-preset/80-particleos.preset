@@ -15,3 +15,5 @@ disable wpa_supplicant*.service
 
 # In order to avoid a Debian-specific bug.
 disable systemd-update.timer
+
+enable update-etc.service

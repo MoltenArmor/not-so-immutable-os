@@ -1,0 +1,13 @@
+[Unit]
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+Before=systemd-update-done.service
+
+[Service]
+Type=oneshot
+ExecStart=cp -rpn /usr/share/factory/etc /
+RemainAfterExit=yes
+
+[Install]
+WantedBy=systemd-update-done.service
