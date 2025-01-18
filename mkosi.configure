@@ -1,6 +1,0 @@
-#!/bin/sh -ue
-
-cd initrd && \
-    /bin/sh build.sh
-
-jq -Mc '. += {"Initrd": "initrd/mkosi.output/initrd.img"}'
