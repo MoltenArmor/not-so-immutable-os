@@ -18,3 +18,6 @@ locale-gen
 
 # Create sudo symlink.
 ln -s doas /usr/bin/sudo
+
+# Trick to cheat dracut.
+cp /usr/lib64/ld-linux-x86-64.so.2 /usr/lib64/ld-linux-x86-64.so
