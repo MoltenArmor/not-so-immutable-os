@@ -9,7 +9,7 @@ set -ue
 # fi
 
 # Remove xterm.
-apt purge --autoremove -y xterm
+[ -e /usr/bin/xterm ] && apt purge --autoremove -y xterm
 
 sed -i '/^# C.UTF-8.*/c\C.UTF-8 UTF-8' /etc/locale.gen && \
 sed -i '/^# en_US.UTF-8.*/c\en_US.UTF-8 UTF-8' /etc/locale.gen && \
