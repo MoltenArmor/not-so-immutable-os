@@ -7,7 +7,7 @@ ConditionNeedsUpdate=/etc
 
 [Service]
 Type=oneshot
-ExecStart=cp -rpn /usr/share/factory/etc /
+ExecStart=cp -rp --update=none /usr/share/factory/etc /
 RemainAfterExit=yes
 
 [Install]
