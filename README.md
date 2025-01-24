@@ -6,7 +6,7 @@ This system is based on Debian, using as many systemd components as we can. And 
 Profiles:
 - `desktop`: Include desktop base files in the main image, including `pipewire`, `upower`, `accountservice` and so on.
 - `xfce`: Include XFCE desktop environment in the main image.
-- `update`: Enable some special config for updating images.
+- `update`: Enable some special config for updating.
 - `sysext-only`: *Enable some special config to build sysext images only.
 
 To build it:
