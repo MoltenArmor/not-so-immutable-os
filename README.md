@@ -7,7 +7,12 @@ Profiles:
 - `desktop`: Include desktop base files in the main image, including `pipewire`, `upower`, `accountservice` and so on.
 - `xfce`: Include XFCE desktop environment in the main image.
 - `update`: Enable some special config for updating.
-- `sysext-only`: *Enable some special config to build sysext images only.
+- `sysext-only`: Enable some special config to build sysext images only.
+
+Sysext apps:
+- `chromium`: Chromium browser.
+- `incus`: Incus system container and VM manager, plus qemu.
+- `vmware`: VMWare tools.
 
 To build it:
 
@@ -31,5 +36,5 @@ To build sysext images:
 
 ```
 # Enable profiles that you are using.
-mkosi [--profile desktop --profile xfce] --profile sysext-only build
+mkosi [--profile desktop --profile xfce] --profile sysext-only [--dependency <APP>] build
 ```
