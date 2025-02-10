@@ -1,0 +1,3 @@
+#!/bin/sh -ue
+# Fix for Xfce
+ln -s Adwaita/ /usr/share/icons/adwaita
