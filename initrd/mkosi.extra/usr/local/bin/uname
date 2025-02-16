@@ -1,9 +1,0 @@
-#!/bin/sh
-# Author: Kwok Guy
-set -ue
-
-if [ -n "${FAKE_KERNEL:-}" ]; then
-   printf '%s\n' "$(/usr/bin/uname "$@" | sed -E "s/$(/usr/bin/uname -r)/${FAKE_KERNEL}/")"
-else
-   exec /usr/bin/uname "$@"
-fi

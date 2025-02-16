@@ -1,4 +1,0 @@
-#!/bin/sh -ue
-
-rm -rf mkosi.output/*
-
