@@ -14,6 +14,6 @@ enable systemd-homed-firstboot.service
 disable wpa_supplicant*.service
 
 # In order to avoid a Debian-specific bug.
-disable systemd-update.timer
+disable systemd-sysupdate.timer
 
 enable update-etc.service
