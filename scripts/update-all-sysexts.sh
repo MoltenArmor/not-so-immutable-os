@@ -2,7 +2,8 @@
 set -ue
 
 SCRIPT_PATH="$(readlink -nf "$0")"
-OUTPUT_PATH="${SCRIPT_PATH}/../mkosi.output"
+SCRIPT_DIR="$(dirname "${SCRIPT_PATH}")"
+OUTPUT_PATH="${SCRIPT_DIR}/../mkosi.output"
 
 for sysext_image_path in "${OUTPUT_PATH}"/sysext-*; do
     sysext_image_basename="$(basename "${sysext_image_path}")"

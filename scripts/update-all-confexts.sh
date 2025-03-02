@@ -2,7 +2,8 @@
 set -ue
 
 SCRIPT_PATH="$(readlink -nf "$0")"
-OUTPUT_PATH="${SCRIPT_PATH}/../mkosi.output"
+SCRIPT_DIR="$(dirname "${SCRIPT_PATH}")"
+OUTPUT_PATH="${SCRIPT_DIR}/../mkosi.output"
 
 for confext_image_path in "${OUTPUT_PATH}"/confext-*; do
     confext_image_basename="$(basename "${confext_image_path}")"
