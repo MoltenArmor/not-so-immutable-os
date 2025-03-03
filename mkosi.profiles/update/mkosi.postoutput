@@ -1,4 +1,0 @@
-#!/bin/sh
-set -ue
-
-mkdir -p "${OUTPUTDIR}/tools/usr/share/factory"
