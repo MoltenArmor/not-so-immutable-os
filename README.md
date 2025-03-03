@@ -10,7 +10,6 @@ Profiles:
 - `desktop`: Include desktop base files in the main image, including `pipewire`, `upower`, `accountservice` and so on.
 - `xfce`: Include XFCE desktop environment in the main image.
 - `mate`: Include MATE desktop environment in the main image.
-- `update`: Enable some special config for updating.
 - `sysext-only`: Enable some special config to build sysext images only.
 
 Sysext apps:
@@ -39,13 +38,13 @@ mkosi --profile desktop --profile xfce --console gui vm
 To build update images:
 
 ```
-mkosi --profile desktop --profile xfce --profile update sysupdate
+mkosi --profile desktop --profile xfce sysupdate
 ```
 
 To apply update:
 
 ```
-mkosi --profile desktop --profile xfce --profile update sysupdate update
+mkosi --profile desktop --profile xfce sysupdate update
 ```
 
 To build sysext images:
