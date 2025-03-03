@@ -1,2 +1,3 @@
 #!/bin/sh -ue
-mkdir -p mkosi.output/tools/usr/share/factory
+
+mkdir -p "${OUTPUTDIR}/tools/usr/share/factory"
