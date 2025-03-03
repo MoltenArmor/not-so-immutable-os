@@ -1,4 +1,5 @@
-#!/bin/sh -ue
+#!/bin/sh
+set -ue
 
 # Fix services imported by systemd-confext in /etc not being loaded.
 systemctl daemon-reload
