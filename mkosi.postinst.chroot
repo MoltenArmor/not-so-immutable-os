@@ -24,4 +24,4 @@ ln -s doas /usr/bin/sudo
 # /etc and /usr is not on the same partition.
 # Anyway, this fixes it.
 ln -sf regulatory.db-debian /usr/lib/firmware/regulatory.db
-ln -sf regulatory.db-debian.p7s /usr/lib/firmware/regulatory.db.p7s
+ln -sf regulatory.db.p7s-debian /usr/lib/firmware/regulatory.db.p7s
