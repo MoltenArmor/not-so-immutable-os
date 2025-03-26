@@ -4,3 +4,5 @@ set -ue
 
 # Remove xterm.
 [ -e /usr/bin/xterm ] && apt purge --autoremove -y xterm
+
+exit 0
