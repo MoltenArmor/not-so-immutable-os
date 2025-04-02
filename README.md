@@ -18,10 +18,11 @@ Sysext apps:
 - `sysext-vmware`: VMWare tools.
 - `sysext-breeze`: KDE Breeze dependencies.
 - `sysext-kate`: Kate editor.
-- `sysext-avahi`: Avahi daemon and utils.
 - `sysext-ncat`: Netcat.
 - `sysext-virt-viewer`: Virt viewer tool.
 - `sysext-apt-file`: apt-file command-line tool.
+- `sysext-gnome-boxes`
+- `sysext-gnome-connections`
 
 To build it:
 
@@ -53,3 +54,7 @@ To build sysext images:
 # Enable profiles you are using.
 mkosi [--profile desktop --profile xfce] --profile sysext-only [--dependency <APP>] build
 ```
+
+Tip:
+- After attaching sysext (and their confext dependencies) images, you are recommended to run `systemd-sysusers && systemd-tmpfiles --create && systemtl preset-all`.
+- After attaching GNOME-related sysext images (for example, `sysext-gnome-boxes`), you **HAVE TO** run `glib-compile-schemas /usr/share/glib-2.0/schemas/ --targetdir=~/.local/share/glib-2.0/schemas/` to use these apps.
