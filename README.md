@@ -21,6 +21,7 @@ Sysext apps:
 - `sysext-ncat`: Netcat.
 - `sysext-virt-viewer`: Virt viewer tool.
 - `sysext-apt-file`: apt-file command-line tool.
+- `sysext-mkosi-tools`: Tools for using mkosi to build other distros.
 - `sysext-gnome-boxes`
 - `sysext-gnome-connections`
 
@@ -36,12 +37,6 @@ To try it in VM:
 mkosi --profile desktop --profile xfce --console gui vm
 ```
 
-To build update images:
-
-```
-mkosi --profile desktop --profile xfce sysupdate
-```
-
 To apply update:
 
 ```
@@ -55,6 +50,6 @@ To build sysext images:
 mkosi [--profile desktop --profile xfce] --profile sysext-only [--dependency <APP>] build
 ```
 
-Tip:
+Tips:
 - After attaching sysext (and their confext dependencies) images, you are recommended to run `systemd-sysusers && systemd-tmpfiles --create && systemtl preset-all`.
 - After attaching GNOME-related sysext images (for example, `sysext-gnome-boxes`), you **HAVE TO** run `glib-compile-schemas /usr/share/glib-2.0/schemas/ --targetdir=~/.local/share/glib-2.0/schemas/` to use these apps.
