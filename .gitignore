@@ -2,3 +2,4 @@ mkosi.local*
 .mkosi-private/
 mkosi.cache/
 mkosi.output/
+mkosi.version
