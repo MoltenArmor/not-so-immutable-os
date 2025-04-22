@@ -1,0 +1,29 @@
+#!/bin/sh
+set -ue
+
+reload_or_restart() {
+    systemctl --no-block reload-or-restart systemd-sysext.service systemd-confext.service
+    tmpify -r /var/lib/apt || :
+    tmpify -r /var/lib/dpkg || :
+}
+
+trap reload_or_restart EXIT
+
+usage() {
+    printf '%s\n' 'Enter testing mode with ephemeral /etc and /usr.'
+    exit 0
+}
+
+if [ "$#" -ne 0 ]; then
+    usage
+fi
+
+if systemd-confext refresh --noexec=no --mutable=ephemeral && systemd-sysext refresh --mutable=ephemeral; then
+    if tmpify /var/lib/apt && tmpify /var/lib/dpkg; then
+        :
+    else
+        printf '%s\n' 'Error: Failed to tmpify /var/lib/apt or /var/lib/dpkg.'
+    fi
+else
+    printf '%s\n' 'Error: Failed to refresh systemd-confext or systemd-sysext.'
+fi

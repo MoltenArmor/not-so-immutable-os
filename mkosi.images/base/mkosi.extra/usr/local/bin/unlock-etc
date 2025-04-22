@@ -1,0 +1,32 @@
+#!/bin/sh
+set -ue
+
+start_confext() {
+    if ! systemctl --no-block start systemd-confext.service; then
+    	printf '%s\n' 'Error: Failed to queue start job for systemd-confext.service.' >&2
+    fi
+}
+
+trap start_confext EXIT
+
+usage() {
+    printf '%s\n' 'Unlock /etc and run command.'
+    exit 0
+}
+
+if [ -z "${1:-}" ]; then
+    usage
+fi
+
+if ! [ -x "$(which "$1")" ]; then
+    printf '%s\n' "Error: $1 is not executable." >&2
+    exit 1
+fi
+
+if systemctl stop systemd-confext.service; then
+    exec "$@"
+    printf '%s\n' "Error: Failed to run $1" >&2
+else
+    printf '%s\n' 'Error: Failed to stop systemd-confext.service.' >&2
+fi
+

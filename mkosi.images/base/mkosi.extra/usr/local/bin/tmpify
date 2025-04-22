@@ -1,0 +1,117 @@
+#!/bin/sh
+set -ue
+
+BASE_DIR="/run/tmpify"
+
+echo() {
+    printf '%s\n' "$@"
+}
+
+usage() {
+    echo "Make a directory ephemeral by mounting an overlay tmpfs."
+    echo "Usage:"
+    echo "  $0 <directory>      Tmpify a directory."
+    echo "  $0 -r|--restore <directory>   Restore a directory."
+}
+
+safe_path() {
+    echo "$1" | tr -s '/' '_'
+}
+
+check_user() {
+    if [ "$(id -u)" -ne 0 ]; then
+        echo "Error: This script must be run as root." >&2
+        exit 1
+    fi
+}
+
+do_mount() {
+    target_dir="$(readlink -nf "$1")"
+
+    if [ ! -d "${target_dir}" ]; then
+        echo "Error: Not a directory!" >&2
+        exit 1
+    fi
+
+    if findmnt -t overlay -T "${target_dir}" > /dev/null 2>&1; then
+        echo "Error: ${target_dir} is already an overlay mountpoint." >&2
+        exit 1
+    fi
+
+    mkdir -p "${BASE_DIR}"
+
+    upper_dir="${BASE_DIR}/upper$(safe_path "${target_dir}")"
+    work_dir="${BASE_DIR}/work$(safe_path "${target_dir}")"
+    mkdir -p "${upper_dir}" "${work_dir}"
+
+    if ! mount -t overlay overlay \
+            -o "lowerdir=${target_dir},upperdir=${upper_dir},workdir=${work_dir}" \
+            "${target_dir}"; then
+        echo "Error: Failed to mount overlay." >&2
+        rm -rf "${upper_dir}" || :
+        rm -rf "${work_dir}" || :
+        exit 1
+    fi
+
+    echo "Successfully tmpified ${target_dir}"
+    echo "To revert, run $0 -r|--restore ${target_dir}"
+}
+
+do_unmount() {
+    target_dir="$(readlink -nf "$1")"
+
+    if ! umount "${target_dir}"; then
+        echo "Error: Failed to umount ${target_dir}" >&2
+        exit 1
+    fi
+
+    rm -rf "${BASE_DIR}/upper$(safe_path "${target_dir}")" || :
+    rm -rf "${BASE_DIR}/work$(safe_path "${target_dir}")" || :
+
+    echo "Successfully restored ${target_dir}"
+}
+
+while [ "$#" -gt 0 ]; do
+    OPT="$1"
+
+    case "${OPT}" in
+        '-r' | '--restore')
+            RESTORE="1"
+            shift
+            ;;
+        '-h' | '--help')
+            usage
+            exit 0
+            ;;
+        '--')
+            shift
+            break
+            ;;
+        *)
+            if echo "$1" | grep -qE "^\-"; then
+                echo "Unknown option." >&2
+                exit 1
+            fi
+            break
+            ;;
+    esac
+done
+
+set -- "$@"
+
+if [ "$#" -eq 0 ]; then
+    usage
+    exit 0
+fi
+
+check_user
+
+TARGET_DIR="${1:-}"
+
+if [ "${RESTORE:-}" = '1' ]; then
+    do_unmount "${TARGET_DIR}"
+else
+    do_mount "${TARGET_DIR}"
+fi
+
+exit 0

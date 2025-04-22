@@ -1,0 +1,16 @@
+#!/bin/sh
+set -ue
+
+usage() {
+    printf '%s\n' 'Exit testing mode and restore /etc and /usr.'
+    exit 0
+}
+
+if [ "$#" -ne 0 ]; then
+    usage
+fi
+
+systemctl --no-block reload-or-restart systemd-confext.service systemd-sysext.service
+
+tmpify -r /var/lib/apt || :
+tmpify -r /var/lib/dpkg || :
