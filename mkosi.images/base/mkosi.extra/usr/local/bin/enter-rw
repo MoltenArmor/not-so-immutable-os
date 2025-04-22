@@ -22,8 +22,8 @@ if systemd-confext refresh --noexec=no --mutable=ephemeral && systemd-sysext ref
     if tmpify /var/lib/apt && tmpify /var/lib/dpkg; then
         :
     else
-        printf '%s\n' 'Error: Failed to tmpify /var/lib/apt or /var/lib/dpkg.'
+        printf '%s\n' 'Error: Failed to tmpify /var/lib/apt or /var/lib/dpkg.' >&2
     fi
 else
-    printf '%s\n' 'Error: Failed to refresh systemd-confext or systemd-sysext.'
+    printf '%s\n' 'Error: Failed to refresh systemd-confext or systemd-sysext.' >&2
 fi
