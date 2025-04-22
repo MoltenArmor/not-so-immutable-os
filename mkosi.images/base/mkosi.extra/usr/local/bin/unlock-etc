@@ -7,7 +7,7 @@ start_confext() {
     fi
 }
 
-trap start_confext EXIT
+trap start_confext HUP INT QUIT ABRT TERM
 
 usage() {
     printf '%s\n' 'Unlock /etc and run command.'
@@ -24,8 +24,8 @@ if ! [ -x "$(which "$1")" ]; then
 fi
 
 if systemctl stop systemd-confext.service; then
-    exec "$@"
-    printf '%s\n' "Error: Failed to run $1" >&2
+    "$@" || { printf '%s\n' "Error: Failed to run $1" >&2 && exit 1; }
+    systemctl --no-block start systemd-confext.service 
 else
     printf '%s\n' 'Error: Failed to stop systemd-confext.service.' >&2
 fi

@@ -7,7 +7,7 @@ reload_or_restart() {
     tmpify -r /var/lib/dpkg || :
 }
 
-trap reload_or_restart EXIT
+trap reload_or_restart HUP INT QUIT ABRT TERM
 
 usage() {
     printf '%s\n' 'Enter testing mode with ephemeral /etc and /usr.'
