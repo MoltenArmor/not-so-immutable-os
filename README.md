@@ -1,10 +1,7 @@
 # not-so-immutable-os
 A system built with mkosi for my own usage.
 
-This system is based on Debian, using as many systemd components as we can. Basically it is based on the idea of [immutable `/usr`](https://0pointer.net/blog/fitting-everything-together.html), but there are several differences:
-
-1. It does not enable secure boot and verity by default.
-2. Its `/etc` is mutable (`--mutable=yes` is enabled for `systemd-confext` by default).
+This system is based on Debian, using as many systemd components as we can. Basically it is based on the idea of [immutable `/usr`](https://0pointer.net/blog/fitting-everything-together.html), but it does not enable secure boot and verity by default.
 
 Profiles:
 - `desktop`: Include desktop base files in the main image, including `pipewire`, `upower`, `accountservice` and so on.
@@ -48,6 +45,21 @@ To build sysext images:
 ```
 # Enable profiles you are using.
 mkosi [--profile desktop --profile xfce] --profile sysext-only [--dependency <APP>] build
+```
+
+Enter volatile RW mode:
+```
+enter-rw
+```
+
+Exit volatile RW mode:
+```
+exit-rw
+```
+
+Execute command with `/etc` writable:
+```
+unlock-etc <command>
 ```
 
 Tips:
