@@ -27,7 +27,7 @@ fi
 
 check_user
 
-if systemd-confext refresh --noexec=no --mutable=ephemeral && systemd-sysext refresh --mutable=ephemeral; then
+if systemd-confext refresh --noexec=no --mutable=ephemeral-import && systemd-sysext refresh --mutable=ephemeral; then
     if tmpify /var/lib/apt && tmpify /var/lib/dpkg; then
         :
     else
