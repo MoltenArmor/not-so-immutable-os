@@ -17,4 +17,4 @@ disable wpa_supplicant*.service
 disable systemd-sysupdate*
 
 enable update-etc.service
-enable update-package-metadata.service
+enable update-var.service

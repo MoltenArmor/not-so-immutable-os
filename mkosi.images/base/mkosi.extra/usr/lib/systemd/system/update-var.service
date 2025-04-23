@@ -3,7 +3,7 @@ DefaultDependencies=no
 Conflicts=shutdown.target
 Before=shutdown.target
 Before=systemd-update-done.service
-ConditionNeedsUpdate=/etc
+ConditionNeedsUpdate=/var
 
 [Service]
 Type=oneshot
