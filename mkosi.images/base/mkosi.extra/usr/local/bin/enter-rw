@@ -14,9 +14,18 @@ usage() {
     exit 0
 }
 
+check_user() {
+    if [ "$(id -u)" -ne 0 ]; then
+        echo "Error: This script must be run as root." >&2
+        exit 1
+    fi
+}
+
 if [ "$#" -ne 0 ]; then
     usage
 fi
+
+check_user
 
 if systemd-confext refresh --noexec=no --mutable=ephemeral && systemd-sysext refresh --mutable=ephemeral; then
     if tmpify /var/lib/apt && tmpify /var/lib/dpkg; then

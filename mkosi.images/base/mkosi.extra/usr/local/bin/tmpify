@@ -45,8 +45,8 @@ do_mount() {
     mkdir -p "${upper_dir}" "${work_dir}"
 
     if ! mount -t overlay overlay \
-            -o "lowerdir=${target_dir},upperdir=${upper_dir},workdir=${work_dir}" \
-            "${target_dir}"; then
+        -o lowerdir="${target_dir}",upperdir="${upper_dir}",workdir="${work_dir}" \
+        "${target_dir}"; then
         echo "Error: Failed to mount overlay." >&2
         rm -rf "${upper_dir}" || :
         rm -rf "${work_dir}" || :
