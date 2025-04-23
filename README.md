@@ -52,7 +52,7 @@ Enter volatile RW mode:
 enter-rw
 ```
 
-Exit volatile RW mode:
+Exit volatile RW mode and drop all operations:
 ```
 exit-rw
 ```
