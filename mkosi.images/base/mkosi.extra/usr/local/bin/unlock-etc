@@ -89,14 +89,14 @@ if is_etc_writable; then
 else
     if is_confext_merged; then
         if [ "${DIRECTLY:-}" = '1'  ]; then
-            if systemd-confext unmerge > /dev/null 2>&1; then
+            if systemd-confext unmerge > /dev/null; then
                 "$@" || { printf '%s\n' "Error: Failed to run ${1}." >&2 && exit 1; }
                 systemctl --no-block try-reload-or-restart systemd-confext.service
             else
                 printf '%s\n' 'Error: Failed to unmerge confexts.' >&2
             fi
         else
-            if systemd-confext refresh --mutable=yes --noexec=no > /dev/null 2>&1; then
+            if systemd-confext refresh --mutable=yes --noexec=no > /dev/null; then
                 "$@" || { printf '%s\n' "Error: Failed to run ${1}." >&2 && exit 1; }
                 systemctl --no-block try-reload-or-restart systemd-confext.service 
             else
