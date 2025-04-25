@@ -2,31 +2,108 @@
 set -ue
 
 start_confext() {
-    if ! systemctl --no-block start systemd-confext.service; then
-    	printf '%s\n' 'Error: Failed to queue start job for systemd-confext.service.' >&2
+    if ! systemctl --no-block try-reload-or-restart systemd-confext.service; then
+    	printf '%s\n' 'Error: Failed to queue job for systemd-confext.service.' >&2
     fi
 }
 
 trap start_confext HUP INT QUIT ABRT TERM
 
-usage() {
-    printf '%s\n' 'Unlock /etc and run command.'
-    exit 0
+check_user() {
+    if [ "$(id -u)" -ne 0 ]; then
+        echo 'Error: This script must be run as root.' >&2
+        exit 1
+    fi
 }
 
-if [ -z "${1:-}" ]; then
+usage() {
+    printf '%s\n' 'Unlock /etc and run command.'
+    printf '%s\n' 'Usage:'
+    printf '%s\n' "    $0 <command>"
+    printf '%s\n' '      Modifications are stored in an isolated directory,'
+    printf '%s\n' '      and are only visible when systemd-sysext.service is active.'
+    printf '\n'
+    printf '%s\n' "    $0 -d|--directly <command>"
+    printf '%s\n' "      Modifications are directly written to the actual /etc directory."
+}
+
+is_etc_writable() {
+    if touch -a -c /etc > /dev/null 2>&1; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+is_confext_merged() {
+    if [ -d /etc/.systemd-confext/ ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+while [ "$#" -gt 0 ]; do
+    OPT="$1"
+
+    case "${OPT}" in
+        '-d' | '--directly')
+            DIRECTLY='1'
+            shift
+            ;;
+        '-h' | '--help')
+            usage
+            exit 0
+            ;;
+        '--')
+            shift
+            break
+            ;;
+        *)
+            if echo "$1" | grep -qE '^\-'; then
+                echo 'Unknown option.' >&2
+                exit 1
+            fi
+            break
+            ;;
+    esac
+done
+
+set -- "$@"
+
+if [ "$#" -eq 0 ]; then
     usage
+    exit 0
 fi
+
+check_user
 
 if ! [ -x "$(which "$1")" ]; then
     printf '%s\n' "Error: $1 is not executable." >&2
     exit 1
 fi
 
-if systemctl stop systemd-confext.service; then
-    "$@" || { printf '%s\n' "Error: Failed to run $1" >&2 && exit 1; }
-    systemctl --no-block start systemd-confext.service 
+if is_etc_writable; then
+    # Do nothing if /etc is writable.
+    exit 0
 else
-    printf '%s\n' 'Error: Failed to stop systemd-confext.service.' >&2
+    if is_confext_merged; then
+        if [ "${DIRECTLY:-}" = '1'  ]; then
+            if systemd-confext unmerge > /dev/null 2>&1; then
+                "$@" || { printf '%s\n' "Error: Failed to run ${1}." >&2 && exit 1; }
+                systemctl --no-block try-reload-or-restart systemd-confext.service
+            else
+                printf '%s\n' 'Error: Failed to unmerge confexts.' >&2
+            fi
+        else
+            if systemd-confext refresh --mutable=yes --noexec=no > /dev/null 2>&1; then
+                "$@" || { printf '%s\n' "Error: Failed to run ${1}." >&2 && exit 1; }
+                systemctl --no-block try-reload-or-restart systemd-confext.service 
+            else
+                printf '%s\n' 'Error: Failed to refresh confexts.' >&2
+            fi
+        fi
+    else
+        printf '%s\n' 'Warning: /etc is not managed by systemd-confext, so there is nothing we can do.' >&2
+    fi
 fi
-

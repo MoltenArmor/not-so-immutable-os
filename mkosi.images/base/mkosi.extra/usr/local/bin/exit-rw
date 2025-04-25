@@ -13,13 +13,47 @@ check_user() {
     fi
 }
 
+is_sysext_merged() {
+    if [ -d /usr/.systemd-sysext/ ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+is_confext_merged() {
+    if [ -d /etc/.systemd-confext/ ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+restore_usr() {
+    if is_sysext_merged; then
+        systemctl --no-block try-reload-or-restart systemd-sysext.service
+    else
+        tmpify -r /usr || :
+    fi
+}
+
+restore_etc() {
+    if is_confext_merged; then
+        systemctl --no-block try-reload-or-restart systemd-confext.service
+    else
+        tmpify -r /etc || :
+    fi
+}
+
+restore_package_metadata() {
+    tmpify -r /var/lib/apt || :
+    tmpify -r /var/lib/dpkg || :
+}
+
 if [ "$#" -ne 0 ]; then
     usage
 fi
 
 check_user
 
-systemctl --no-block reload-or-restart systemd-confext.service systemd-sysext.service
-
-tmpify -r /var/lib/apt || :
-tmpify -r /var/lib/dpkg || :
+restore_etc && restore_usr && restore_package_metadata && printf '%s\n' 'Exited RW mode.'

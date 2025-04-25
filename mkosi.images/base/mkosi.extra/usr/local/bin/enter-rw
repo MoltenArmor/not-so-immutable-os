@@ -2,9 +2,9 @@
 set -ue
 
 reload_or_restart() {
-    systemctl --no-block reload-or-restart systemd-sysext.service systemd-confext.service
-    tmpify -r /var/lib/apt || :
-    tmpify -r /var/lib/dpkg || :
+    systemctl --no-block try-reload-or-restart systemd-sysext.service systemd-confext.service
+    tmpify -r /var/lib/apt > /dev/null || :
+    tmpify -r /var/lib/dpkg > /dev/null || :
 }
 
 trap reload_or_restart HUP INT QUIT ABRT TERM
@@ -21,15 +21,64 @@ check_user() {
     fi
 }
 
+is_sysext_merged() {
+    if [ -d /usr/.systemd-sysext/ ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+is_confext_merged() {
+    if [ -d /etc/.systemd-confext/ ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+tmpify_usr() {
+    if is_sysext_merged; then
+        if systemd-sysext refresh --mutable=ephemeral-import > /dev/null; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        if tmpify /usr > /dev/null 2>&1; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
+tmpify_etc() {
+    if is_confext_merged; then
+        if systemd-confext refresh --noexec=no --mutable=ephemeral-import > /dev/null; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        if tmpify /etc > /dev/null 2>&1; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
 if [ "$#" -ne 0 ]; then
     usage
 fi
 
 check_user
 
-if systemd-confext refresh --noexec=no --mutable=ephemeral-import && systemd-sysext refresh --mutable=ephemeral; then
-    if tmpify /var/lib/apt && tmpify /var/lib/dpkg; then
-        :
+if tmpify_etc && tmpify_usr; then
+    if tmpify /var/lib/apt > /dev/null && tmpify /var/lib/dpkg > /dev/null; then
+        printf '%s\n' 'Successfully entered RW mode.'
+        exit 0
     else
         printf '%s\n' 'Error: Failed to tmpify /var/lib/apt or /var/lib/dpkg.' >&2
     fi
