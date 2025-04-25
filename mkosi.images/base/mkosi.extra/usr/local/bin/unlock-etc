@@ -2,12 +2,14 @@
 set -ue
 
 start_confext() {
-    if ! systemctl --no-block try-reload-or-restart systemd-confext.service; then
-    	printf '%s\n' 'Error: Failed to queue job for systemd-confext.service.' >&2
+    if [ "$?" -ne 0 ]; then
+        if ! systemctl --no-block try-reload-or-restart systemd-confext.service; then
+            printf '%s\n' 'Error: Failed to queue job for systemd-confext.service.' >&2
+        fi
     fi
 }
 
-trap start_confext HUP INT QUIT ABRT TERM
+trap start_confext EXIT
 
 check_user() {
     if [ "$(id -u)" -ne 0 ]; then

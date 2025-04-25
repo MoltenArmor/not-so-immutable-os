@@ -2,12 +2,14 @@
 set -ue
 
 reload_or_restart() {
-    systemctl --no-block try-reload-or-restart systemd-sysext.service systemd-confext.service
-    tmpify -r /var/lib/apt > /dev/null || :
-    tmpify -r /var/lib/dpkg > /dev/null || :
+    if [ "$?" -ne 0 ]; then
+        systemctl --no-block try-reload-or-restart systemd-sysext.service systemd-confext.service
+        tmpify -r /var/lib/apt > /dev/null || :
+        tmpify -r /var/lib/dpkg > /dev/null || :
+    fi
 }
 
-trap reload_or_restart HUP INT QUIT ABRT TERM
+trap reload_or_restart EXIT
 
 usage() {
     printf '%s\n' 'Enter testing mode with ephemeral /etc and /usr.'
