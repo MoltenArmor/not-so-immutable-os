@@ -2,7 +2,8 @@
 set -ue
 
 reload_or_restart() {
-    if [ "$?" -ne 0 ]; then
+    EXIT_STATUS="$?"
+    if [ "${EXIT_STATUS}" -ne 0 ] && [ "${EXIT_STATUS}" -ne 254 ]; then
         systemctl --no-block try-reload-or-restart systemd-sysext.service systemd-confext.service
         tmpify -r /var/lib/apt > /dev/null || :
         tmpify -r /var/lib/dpkg > /dev/null || :
@@ -19,7 +20,7 @@ usage() {
 check_user() {
     if [ "$(id -u)" -ne 0 ]; then
         echo "Error: This script must be run as root." >&2
-        exit 1
+        exit 254
     fi
 }
 
@@ -47,7 +48,7 @@ tmpify_usr() {
             return 1
         fi
     else
-        if tmpify /usr > /dev/null 2>&1; then
+        if tmpify /usr > /dev/null; then
             return 0
         else
             return 1
@@ -63,7 +64,7 @@ tmpify_etc() {
             return 1
         fi
     else
-        if tmpify /etc > /dev/null 2>&1; then
+        if tmpify /etc > /dev/null; then
             return 0
         else
             return 1
@@ -83,7 +84,9 @@ if tmpify_etc && tmpify_usr; then
         exit 0
     else
         printf '%s\n' 'Error: Failed to tmpify /var/lib/apt or /var/lib/dpkg.' >&2
+        exit 1
     fi
 else
     printf '%s\n' 'Error: Failed to refresh systemd-confext or systemd-sysext.' >&2
+    exit 1
 fi

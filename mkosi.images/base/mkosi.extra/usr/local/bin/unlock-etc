@@ -2,7 +2,8 @@
 set -ue
 
 start_confext() {
-    if [ "$?" -ne 0 ]; then
+    EXIT_STATUS="$?"
+    if [ "${EXIT_STATUS}" -ne 0 ] && [ "${EXIT_STATUS}" -ne 254 ]; then
         if ! systemctl --no-block try-reload-or-restart systemd-confext.service; then
             printf '%s\n' 'Error: Failed to queue job for systemd-confext.service.' >&2
         fi
@@ -14,7 +15,7 @@ trap start_confext EXIT
 check_user() {
     if [ "$(id -u)" -ne 0 ]; then
         echo 'Error: This script must be run as root.' >&2
-        exit 1
+        exit 254
     fi
 }
 
@@ -82,7 +83,7 @@ check_user
 
 if ! [ -x "$(which "$1")" ]; then
     printf '%s\n' "Error: $1 is not executable." >&2
-    exit 1
+    exit 254
 fi
 
 if is_etc_writable; then
@@ -96,6 +97,7 @@ else
                 systemctl --no-block try-reload-or-restart systemd-confext.service
             else
                 printf '%s\n' 'Error: Failed to unmerge confexts.' >&2
+                exit 1
             fi
         else
             if systemd-confext refresh --mutable=yes --noexec=no > /dev/null; then
@@ -103,9 +105,11 @@ else
                 systemctl --no-block try-reload-or-restart systemd-confext.service 
             else
                 printf '%s\n' 'Error: Failed to refresh confexts.' >&2
+                exit 1
             fi
         fi
     else
         printf '%s\n' 'Warning: /etc is not managed by systemd-confext, so there is nothing we can do.' >&2
+        exit 254
     fi
 fi
