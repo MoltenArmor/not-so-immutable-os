@@ -23,11 +23,11 @@ usage() {
     printf '%s\n' 'Unlock /etc and run command.'
     printf '%s\n' 'Usage:'
     printf '%s\n' "    $0 <command>"
-    printf '%s\n' '      Modifications are stored in an isolated directory,'
-    printf '%s\n' '      and are only visible when systemd-sysext.service is active.'
+    printf '%s\n' '    Modifications are stored in an isolated directory,'
+    printf '%s\n' '    and are only visible when systemd-sysext.service is active.'
     printf '\n'
     printf '%s\n' "    $0 -d|--directly <command>"
-    printf '%s\n' "      Modifications are directly written to the actual /etc directory."
+    printf '%s\n' "    Modifications are directly written to the actual /etc directory."
 }
 
 is_etc_writable() {
@@ -65,6 +65,7 @@ while [ "$#" -gt 0 ]; do
         *)
             if echo "$1" | grep -qE '^\-'; then
                 echo 'Unknown option.' >&2
+                usage
                 exit 1
             fi
             break

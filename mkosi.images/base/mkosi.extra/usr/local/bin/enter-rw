@@ -14,7 +14,6 @@ trap reload_or_restart EXIT
 
 usage() {
     printf '%s\n' 'Enter testing mode with ephemeral /etc and /usr.'
-    exit 0
 }
 
 check_user() {
@@ -74,6 +73,7 @@ tmpify_etc() {
 
 if [ "$#" -ne 0 ]; then
     usage
+    exit 0
 fi
 
 check_user

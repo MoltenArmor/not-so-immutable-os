@@ -3,7 +3,6 @@ set -ue
 
 usage() {
     printf '%s\n' 'Exit testing mode and restore /etc and /usr.'
-    exit 0
 }
 
 check_user() {
@@ -52,6 +51,7 @@ restore_package_metadata() {
 
 if [ "$#" -ne 0 ]; then
     usage
+    exit 0
 fi
 
 check_user

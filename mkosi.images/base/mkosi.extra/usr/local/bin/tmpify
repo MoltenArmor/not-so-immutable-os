@@ -90,6 +90,7 @@ while [ "$#" -gt 0 ]; do
         *)
             if echo "$1" | grep -qE "^\-"; then
                 echo "Unknown option." >&2
+                usage
                 exit 1
             fi
             break
