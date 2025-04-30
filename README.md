@@ -5,13 +5,14 @@ This system is based on Debian, using as many systemd components as we can. Basi
 
 Profiles:
 - `desktop`: Include desktop base files in the main image, including `pipewire`, `upower`, `accountservice` and so on.
-- `xfce`: Include XFCE desktop environment in the main image.
-- `mate`: Include MATE desktop environment in the main image.
+  - `xfce`: Include XFCE desktop environment in the main image.
+  - `mate`: Include MATE desktop environment in the main image.
 - `sysext-only`: Enable some special config to build sysext images only.
 
 Sysext apps:
 - `sysext-chromium`: Chromium browser.
 - `sysext-incus`: Incus system container and VM manager, plus qemu.
+- `sysext-podman`: Podman container tool and `podman-docker` symlink.
 - `sysext-vmware`: VMWare tools.
 - `sysext-breeze`: KDE Breeze dependencies.
 - `sysext-kate`: Kate editor.
@@ -19,8 +20,8 @@ Sysext apps:
 - `sysext-virt-viewer`: Virt viewer tool.
 - `sysext-apt-file`: apt-file command-line tool.
 - `sysext-mkosi-tools`: Tools for using mkosi to build other distros.
-- `sysext-gnome-boxes`
-- `sysext-gnome-connections`
+- `sysext-gnome-boxes`: GNOME Boxes VM tool.
+- `sysext-gnome-connections`: GNOME Connections.
 
 To build it:
 
@@ -59,7 +60,7 @@ exit-rw
 
 Execute command with `/etc` writable:
 ```
-unlock-etc <command>
+unlock-etc [-d|--directly] <command>
 ```
 
 Tips:
