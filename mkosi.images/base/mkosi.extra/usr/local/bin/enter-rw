@@ -67,15 +67,11 @@ is_dir_tmpified() {
 
 tmpify_usr() {
     if is_sysext_merged; then
-        if is_sysext_ephemeral; then
-            return 0
-        else
+        if ! is_sysext_ephemeral; then
             systemd-sysext refresh --mutable=ephemeral-import
         fi
     else
-        if is_dir_tmpified /usr; then
-            return 0
-        else
+        if ! is_dir_tmpified /usr; then
             tmpify /usr
         fi
     fi
@@ -83,26 +79,22 @@ tmpify_usr() {
 
 tmpify_etc() {
     if is_confext_merged; then
-        if is_confext_ephemeral; then
-            return 0
-        else
+        if ! is_confext_ephemeral; then
             systemd-confext refresh --noexec=no --mutable=ephemeral-import
         fi
     else
-        if is_dir_tmpified /etc; then
-            return 0
-        else
+        if ! is_dir_tmpified /etc; then
             tmpify /etc
         fi
     fi
 }
 
 tmpify_package_metadata() {
-    if is_dir_tmpified /var/lib/apt; then
+    if ! is_dir_tmpified /var/lib/apt; then
         tmpify /var/lib/apt
     fi
 
-    if is_dir_tmpified /var/lib/dpkg; then
+    if ! is_dir_tmpified /var/lib/dpkg; then
         tmpify /var/lib/dpkg
     fi
 }
