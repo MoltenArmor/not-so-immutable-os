@@ -28,25 +28,44 @@ is_confext_merged() {
     fi
 }
 
+is_dir_tmpified() {
+    target_dir="$1"
+
+    if findmnt -t overlay -T "${target_dir}" | grep -qF 'upperdir=/run/tmpify'; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 restore_usr() {
     if is_sysext_merged; then
         systemctl --no-block try-reload-or-restart systemd-sysext.service
-    else
+    elif is_dir_tmpified /usr; then
         tmpify -r /usr || :
+    else
+        return 0
     fi
 }
 
 restore_etc() {
     if is_confext_merged; then
         systemctl --no-block try-reload-or-restart systemd-confext.service
-    else
+    elif is_dir_tmpified /etc; then
         tmpify -r /etc || :
+    else
+        return 0
     fi
 }
 
 restore_package_metadata() {
-    tmpify -r /var/lib/apt || :
-    tmpify -r /var/lib/dpkg || :
+    if is_dir_tmpified /var/lib/apt; then
+        tmpify -r /var/lib/apt || :
+    fi
+
+    if is_dir_tmpified /var/lib/dpkg; then
+        tmpify -r /var/lib/dpkg || :
+    fi
 }
 
 if [ "$#" -ne 0 ]; then

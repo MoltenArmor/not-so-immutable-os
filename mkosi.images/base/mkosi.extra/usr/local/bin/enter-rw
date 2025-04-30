@@ -39,35 +39,71 @@ is_confext_merged() {
     fi
 }
 
+is_sysext_ephemeral() {
+    if findmnt -t overlay -T /usr | grep -qF 'upperdir=/run/systemd/sysext/mh_workspace/usr'; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+is_confext_ephemeral() {
+    if findmnt -t overlay -T /etc | grep -qF 'upperdir=/run/systemd/sysext/mh_workspace/etc'; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+is_dir_tmpified() {
+    target_dir="$1"
+
+    if findmnt -t overlay -T "${target_dir}" | grep -qF 'upperdir=/run/tmpify'; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 tmpify_usr() {
     if is_sysext_merged; then
-        if systemd-sysext refresh --mutable=ephemeral-import > /dev/null; then
+        if is_sysext_ephemeral; then
             return 0
         else
-            return 1
+            systemd-sysext refresh --mutable=ephemeral-import
         fi
     else
-        if tmpify /usr > /dev/null; then
+        if is_dir_tmpified /usr; then
             return 0
         else
-            return 1
+            tmpify /usr
         fi
     fi
 }
 
 tmpify_etc() {
     if is_confext_merged; then
-        if systemd-confext refresh --noexec=no --mutable=ephemeral-import > /dev/null; then
+        if is_confext_ephemeral; then
             return 0
         else
-            return 1
+            systemd-confext refresh --noexec=no --mutable=ephemeral-import
         fi
     else
-        if tmpify /etc > /dev/null; then
+        if is_dir_tmpified /etc; then
             return 0
         else
-            return 1
+            tmpify /etc
         fi
+    fi
+}
+
+tmpify_package_metadata() {
+    if is_dir_tmpified /var/lib/apt; then
+        tmpify /var/lib/apt
+    fi
+
+    if is_dir_tmpified /var/lib/dpkg; then
+        tmpify /var/lib/dpkg
     fi
 }
 
@@ -78,15 +114,10 @@ fi
 
 check_user
 
-if tmpify_etc && tmpify_usr; then
-    if tmpify /var/lib/apt > /dev/null && tmpify /var/lib/dpkg > /dev/null; then
-        printf '%s\n' 'Successfully entered RW mode.'
-        exit 0
-    else
-        printf '%s\n' 'Error: Failed to tmpify /var/lib/apt or /var/lib/dpkg.' >&2
-        exit 1
-    fi
+if tmpify_etc && tmpify_usr && tmpify_package_metadata; then
+    printf '%s\n' 'Successfully entered RW mode.'
+    exit 0
 else
-    printf '%s\n' 'Error: Failed to refresh systemd-confext or systemd-sysext.' >&2
+    printf '%s\n' 'Error: Failed to enter RW mode.' >&2
     exit 1
 fi
