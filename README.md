@@ -10,6 +10,7 @@ Profiles:
 - `sysext-only`: Enable some special config to build sysext images only.
 
 Sysext apps:
+- `sysext-zsh`: Zsh.
 - `sysext-chromium`: Chromium browser.
 - `sysext-incus`: Incus system container and VM manager, plus qemu.
 - `sysext-podman`: Podman container tool and `podman-docker` symlink.
