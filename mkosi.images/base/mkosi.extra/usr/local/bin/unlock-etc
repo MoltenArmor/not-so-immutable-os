@@ -89,7 +89,7 @@ fi
 
 if is_etc_writable; then
     # Do nothing if /etc is writable.
-    exit 0
+    "$@"
 else
     if is_confext_merged; then
         if [ "${DIRECTLY:-}" = '1'  ]; then
