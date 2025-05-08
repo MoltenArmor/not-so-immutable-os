@@ -60,7 +60,7 @@ do_mount() {
 do_unmount() {
     target_dir="$(readlink -nf "$1")"
 
-    if ! umount "${target_dir}"; then
+    if ! umount "${target_dir}" || ! umount -l "${target_dir}"; then
         echo "Error: Failed to umount ${target_dir}" >&2
         exit 1
     fi
