@@ -17,4 +17,4 @@ disable wpa_supplicant*.service
 disable systemd-sysupdate*
 
 enable update-etc.service
-mask systemd-homed-firstboot.service
+disable systemd-homed-firstboot.service
