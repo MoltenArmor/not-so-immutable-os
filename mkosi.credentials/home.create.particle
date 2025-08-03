@@ -2,7 +2,7 @@
     "userName": "particle",
     "uid": 1000,
     "gid": 1000,
-    "storage": "classic",
+    "storage": "directory",
     "disposition": "regular",
     "enforcePasswordPolicy": false,
     "memberOf": [
