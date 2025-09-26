@@ -6,7 +6,7 @@ sed -i '/^# en_US.UTF-8.*/c\en_US.UTF-8 UTF-8' /etc/locale.gen && \
 sed -i '/^# zh_CN.UTF-8.*/c\zh_CN.UTF-8 UTF-8' /etc/locale.gen && \
 locale-gen
 
-# Avoid update-alternative link.
+# Avoid update-alternatives link.
 # I guess the failure of regulatory.db loading is becuase
 # /etc and /usr is not on the same partition.
 # Anyway, this fixes it.
