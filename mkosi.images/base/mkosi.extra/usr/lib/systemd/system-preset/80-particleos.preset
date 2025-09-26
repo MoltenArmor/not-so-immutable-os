@@ -12,6 +12,7 @@ enable systemd-homed-firstboot.service
 
 # Disable dracut
 disable dracut*
+disable NetworkManager*initrd*
 
 # Use iwd instead of wpasupplicant
 disable wpa_supplicant*
