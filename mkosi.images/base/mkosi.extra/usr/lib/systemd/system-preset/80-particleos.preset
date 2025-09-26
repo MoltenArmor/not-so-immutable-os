@@ -10,10 +10,13 @@ enable systemd-resolved.service
 enable systemd-timesyncd.service
 enable systemd-homed-firstboot.service
 
-# Use iwd instead of wpasupplicant
-disable wpa_supplicant*.service
+# Disable dracut
+disable dracut*
 
-# In order to avoid a Debian-specific bug.
+# Use iwd instead of wpasupplicant
+disable wpa_supplicant*
+
+# In order to avoid a Debian-specific bug
 disable systemd-sysupdate*
 
 enable update-etc.service
