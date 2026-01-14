@@ -1,57 +1,69 @@
 #!/bin/sh
 set -ue
 
-start_confext() {
+# Track confext state for cleanup on interrupt
+CONFEXT_UNMERGED=0
+CONFEXT_MUTABLE=0
+
+cleanup_on_interrupt() {
     EXIT_STATUS="$?"
-    if [ "${EXIT_STATUS}" -ne 0 ] && [ "${EXIT_STATUS}" -ne 254 ]; then
-        if ! systemctl --no-block try-reload-or-restart systemd-confext.service; then
-            printf '%s\n' 'Error: Failed to queue job for systemd-confext.service.' >&2
+    # Only restore confext on abnormal exit (not 0, not 1, not 2, not 127)
+    if [ "${EXIT_STATUS}" -ne 0 ] && [ "${EXIT_STATUS}" -ne 1 ] && [ "${EXIT_STATUS}" -ne 2 ] && [ "${EXIT_STATUS}" -ne 127 ]; then
+        if [ "${CONFEXT_UNMERGED}" -eq 1 ] || [ "${CONFEXT_MUTABLE}" -eq 1 ]; then
+            if ! systemctl --no-block try-reload-or-restart systemd-confext.service; then
+                printf '%s\n' 'Error: Failed to queue job for systemd-confext.service.' >&2
+            fi
         fi
     fi
 }
 
-trap start_confext EXIT
-
-check_user() {
-    if [ "$(id -u)" -ne 0 ]; then
-        echo 'Error: This script must be run as root.' >&2
-        exit 254
-    fi
-}
+trap cleanup_on_interrupt EXIT INT TERM
 
 usage() {
     printf '%s\n' 'Unlock /etc and run command.'
     printf '%s\n' 'Usage:'
-    printf '%s\n' "    $0 <command>"
+    printf '%s\n' "    $0 <command> [args...]"
     printf '%s\n' '    Modifications are stored in an isolated directory,'
-    printf '%s\n' '    and are only visible when systemd-sysext.service is active.'
+    printf '%s\n' '    and are only visible when systemd-confext.service is active.'
     printf '\n'
-    printf '%s\n' "    $0 -d|--directly <command>"
+    printf '%s\n' "    $0 -d|--directly <command> [args...]"
     printf '%s\n' "    Modifications are directly written to the actual /etc directory."
 }
 
-is_etc_writable() {
-    if touch -a -c /etc > /dev/null 2>&1; then
-        return 0
-    else
-        return 1
+check_user() {
+    if [ "$(id -u)" -ne 0 ]; then
+        printf '%s\n' "Error: This script must be run as root." >&2
+        exit 1
     fi
+}
+
+is_etc_writable() {
+    touch -a -c /etc > /dev/null 2>&1
 }
 
 is_confext_merged() {
-    if [ -d /etc/.systemd-confext/ ]; then
-        return 0
-    else
-        return 1
-    fi
+    [ -d /etc/.systemd-confext/ ]
 }
 
-while [ "$#" -gt 0 ]; do
-    OPT="$1"
+command_exists() {
+    [ -n "${1:-}" ] || return 1
+    
+    case "$1" in
+        /*|./*|../*)
+            [ -x "$1" ]
+            ;;
+        *)
+            command -v "$1" > /dev/null 2>&1
+            ;;
+    esac
+}
 
-    case "${OPT}" in
+DIRECTLY=0
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
         '-d' | '--directly')
-            DIRECTLY='1'
+            DIRECTLY=1
             shift
             ;;
         '-h' | '--help')
@@ -62,18 +74,16 @@ while [ "$#" -gt 0 ]; do
             shift
             break
             ;;
+        -*)
+            printf '%s\n' "Unknown option: $1" >&2
+            usage
+            exit 2
+            ;;
         *)
-            if echo "$1" | grep -qE '^\-'; then
-                echo 'Unknown option.' >&2
-                usage
-                exit 1
-            fi
             break
             ;;
     esac
 done
-
-set -- "$@"
 
 if [ "$#" -eq 0 ]; then
     usage
@@ -82,19 +92,21 @@ fi
 
 check_user
 
-if ! [ -x "$(which "$1")" ]; then
-    printf '%s\n' "Error: $1 is not executable." >&2
-    exit 254
+if ! command_exists "$1"; then
+    printf '%s\n' "Error: $1 is not found or not executable." >&2
+    exit 127
 fi
 
 if is_etc_writable; then
-    # Do nothing if /etc is writable.
+    # /etc is already writable, execute command directly
     "$@"
 else
     if is_confext_merged; then
-        if [ "${DIRECTLY:-}" = '1'  ]; then
+        if [ "${DIRECTLY}" -eq 1 ]; then
             if systemd-confext unmerge > /dev/null; then
-                "$@" || { printf '%s\n' "Error: Failed to run ${1}." >&2 && exit 1; }
+                CONFEXT_UNMERGED=1
+                "$@" || { printf '%s\n' "Error: Failed to run $1." >&2 && exit 1; }
+                CONFEXT_UNMERGED=0
                 systemctl --no-block try-reload-or-restart systemd-confext.service
             else
                 printf '%s\n' 'Error: Failed to unmerge confexts.' >&2
@@ -102,8 +114,10 @@ else
             fi
         else
             if systemd-confext refresh --mutable=yes --noexec=no > /dev/null; then
-                "$@" || { printf '%s\n' "Error: Failed to run ${1}." >&2 && exit 1; }
-                systemctl --no-block try-reload-or-restart systemd-confext.service 
+                CONFEXT_MUTABLE=1
+                "$@" || { printf '%s\n' "Error: Failed to run $1." >&2 && exit 1; }
+                CONFEXT_MUTABLE=0
+                systemctl --no-block try-reload-or-restart systemd-confext.service
             else
                 printf '%s\n' 'Error: Failed to refresh confexts.' >&2
                 exit 1
@@ -111,6 +125,6 @@ else
         fi
     else
         printf '%s\n' 'Warning: /etc is not managed by systemd-confext, so there is nothing we can do.' >&2
-        exit 254
+        exit 1
     fi
 fi

@@ -1,41 +1,39 @@
 #!/bin/sh
 set -ue
 
+# Ensure cleanup completes even if interrupted
+cleanup_on_interrupt() {
+    # Always try to restore on interrupt
+    restore_etc || :
+    restore_usr || :
+    restore_package_metadata || :
+}
+
+trap cleanup_on_interrupt INT TERM
+
 usage() {
+    printf '%s\n' 'Usage: exit-rw'
     printf '%s\n' 'Exit testing mode and restore /etc and /usr.'
 }
 
 check_user() {
     if [ "$(id -u)" -ne 0 ]; then
-        echo "Error: This script must be run as root." >&2
+        printf '%s\n' "Error: This script must be run as root." >&2
         exit 1
     fi
 }
 
 is_sysext_merged() {
-    if [ -d /usr/.systemd-sysext/ ]; then
-        return 0
-    else
-        return 1
-    fi
+    [ -d /usr/.systemd-sysext/ ]
 }
 
 is_confext_merged() {
-    if [ -d /etc/.systemd-confext/ ]; then
-        return 0
-    else
-        return 1
-    fi
+    [ -d /etc/.systemd-confext/ ]
 }
 
 is_dir_tmpified() {
-    target_dir="$1"
-
-    if findmnt -t overlay -T "${target_dir}" | grep -qF 'upperdir=/run/tmpify'; then
-        return 0
-    else
-        return 1
-    fi
+    [ -n "${1:-}" ] || return 1
+    findmnt -t overlay -T "$1" 2>/dev/null | grep -qF 'upperdir=/run/tmpify'
 }
 
 restore_usr() {
@@ -43,8 +41,6 @@ restore_usr() {
         systemctl --no-block try-reload-or-restart systemd-sysext.service
     elif is_dir_tmpified /usr; then
         tmpify -r /usr || :
-    else
-        return 0
     fi
 }
 
@@ -53,8 +49,6 @@ restore_etc() {
         systemctl --no-block try-reload-or-restart systemd-confext.service
     elif is_dir_tmpified /etc; then
         tmpify -r /etc || :
-    else
-        return 0
     fi
 }
 
@@ -68,11 +62,30 @@ restore_package_metadata() {
     fi
 }
 
-if [ "$#" -ne 0 ]; then
-    usage
-    exit 0
-fi
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        '-h' | '--help')
+            usage
+            exit 0
+            ;;
+        -*)
+            printf '%s\n' "Unknown option: $1" >&2
+            usage
+            exit 2
+            ;;
+        *)
+            printf '%s\n' "Error: This command takes no arguments." >&2
+            usage
+            exit 2
+            ;;
+    esac
+done
 
 check_user
 
-restore_etc && restore_usr && restore_package_metadata && printf '%s\n' 'Exited RW mode.'
+restore_etc
+restore_usr
+restore_package_metadata
+
+printf '%s\n' 'Exited RW mode.'
+exit 0

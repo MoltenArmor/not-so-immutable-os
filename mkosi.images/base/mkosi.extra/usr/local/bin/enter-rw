@@ -1,108 +1,142 @@
 #!/bin/sh
 set -ue
 
-reload_or_restart() {
+# Track what has been tmpified for cleanup on interrupt
+TMPIFIED_ETC=0
+TMPIFIED_USR=0
+TMPIFIED_APT=0
+TMPIFIED_DPKG=0
+
+cleanup_on_interrupt() {
     EXIT_STATUS="$?"
-    if [ "${EXIT_STATUS}" -ne 0 ] && [ "${EXIT_STATUS}" -ne 254 ]; then
-        systemctl --no-block try-reload-or-restart systemd-sysext.service systemd-confext.service
-        tmpify -r /var/lib/apt > /dev/null || :
-        tmpify -r /var/lib/dpkg > /dev/null || :
+    # Clean up on failure (not on normal exit 0 or usage exit 2)
+    if [ "${EXIT_STATUS}" -ne 0 ] && [ "${EXIT_STATUS}" -ne 2 ]; then
+        # Restore in reverse order
+        [ "${TMPIFIED_DPKG}" -eq 1 ] && tmpify -r /var/lib/dpkg > /dev/null 2>&1 || :
+        [ "${TMPIFIED_APT}" -eq 1 ] && tmpify -r /var/lib/apt > /dev/null 2>&1 || :
+        [ "${TMPIFIED_USR}" -eq 1 ] && systemctl --no-block try-reload-or-restart systemd-sysext.service || tmpify -r /usr > /dev/null 2>&1 || :
+        [ "${TMPIFIED_ETC}" -eq 1 ] && systemctl --no-block try-reload-or-restart systemd-confext.service || tmpify -r /etc > /dev/null 2>&1 || :
     fi
 }
 
-trap reload_or_restart EXIT
+trap cleanup_on_interrupt EXIT INT TERM
 
 usage() {
+    printf '%s\n' 'Usage: enter-rw'
     printf '%s\n' 'Enter testing mode with ephemeral /etc and /usr.'
 }
 
 check_user() {
     if [ "$(id -u)" -ne 0 ]; then
-        echo "Error: This script must be run as root." >&2
-        exit 254
+        printf '%s\n' "Error: This script must be run as root." >&2
+        exit 1
     fi
 }
 
 is_sysext_merged() {
-    if [ -d /usr/.systemd-sysext/ ]; then
-        return 0
-    else
-        return 1
-    fi
+    [ -d /usr/.systemd-sysext/ ]
 }
 
 is_confext_merged() {
-    if [ -d /etc/.systemd-confext/ ]; then
-        return 0
-    else
-        return 1
-    fi
+    [ -d /etc/.systemd-confext/ ]
 }
 
 is_sysext_ephemeral() {
-    if findmnt -t overlay -T /usr | grep -qF 'upperdir=/run/systemd/sysext/mh_workspace/usr'; then
-        return 0
-    else
-        return 1
-    fi
+    findmnt -t overlay -T /usr 2>/dev/null | grep -qF 'upperdir=/run/systemd/sysext/mh_workspace/usr'
 }
 
 is_confext_ephemeral() {
-    if findmnt -t overlay -T /etc | grep -qF 'upperdir=/run/systemd/sysext/mh_workspace/etc'; then
-        return 0
-    else
-        return 1
-    fi
+    findmnt -t overlay -T /etc 2>/dev/null | grep -qF 'upperdir=/run/systemd/sysext/mh_workspace/etc'
 }
 
 is_dir_tmpified() {
-    target_dir="$1"
-
-    if findmnt -t overlay -T "${target_dir}" | grep -qF 'upperdir=/run/tmpify'; then
-        return 0
-    else
-        return 1
-    fi
+    [ -n "${1:-}" ] || return 1
+    findmnt -t overlay -T "$1" 2>/dev/null | grep -qF 'upperdir=/run/tmpify'
 }
 
 tmpify_usr() {
     if is_sysext_merged; then
         if ! is_sysext_ephemeral; then
-            systemd-sysext refresh --mutable=ephemeral-import
+            if systemd-sysext refresh --mutable=ephemeral-import; then
+                TMPIFIED_USR=1
+                return 0
+            else
+                return 1
+            fi
         fi
     else
         if ! is_dir_tmpified /usr; then
-            tmpify /usr
+            if tmpify /usr; then
+                TMPIFIED_USR=1
+                return 0
+            else
+                return 1
+            fi
         fi
     fi
+    return 0
 }
 
 tmpify_etc() {
     if is_confext_merged; then
         if ! is_confext_ephemeral; then
-            systemd-confext refresh --noexec=no --mutable=ephemeral-import
+            if systemd-confext refresh --noexec=no --mutable=ephemeral-import; then
+                TMPIFIED_ETC=1
+                return 0
+            else
+                return 1
+            fi
         fi
     else
         if ! is_dir_tmpified /etc; then
-            tmpify /etc
+            if tmpify /etc; then
+                TMPIFIED_ETC=1
+                return 0
+            else
+                return 1
+            fi
         fi
     fi
+    return 0
 }
 
 tmpify_package_metadata() {
     if ! is_dir_tmpified /var/lib/apt; then
-        tmpify /var/lib/apt
+        if tmpify /var/lib/apt; then
+            TMPIFIED_APT=1
+        else
+            return 1
+        fi
     fi
 
     if ! is_dir_tmpified /var/lib/dpkg; then
-        tmpify /var/lib/dpkg
+        if tmpify /var/lib/dpkg; then
+            TMPIFIED_DPKG=1
+        else
+            return 1
+        fi
     fi
+    return 0
 }
 
-if [ "$#" -ne 0 ]; then
-    usage
-    exit 0
-fi
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        '-h' | '--help')
+            usage
+            exit 0
+            ;;
+        -*)
+            printf '%s\n' "Unknown option: $1" >&2
+            usage
+            exit 2
+            ;;
+        *)
+            printf '%s\n' "Error: This command takes no arguments." >&2
+            usage
+            exit 2
+            ;;
+    esac
+done
 
 check_user
 
