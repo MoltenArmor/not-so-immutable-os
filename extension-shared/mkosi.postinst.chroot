@@ -1,0 +1,29 @@
+#!/bin/sh
+set -eu
+
+EXT_IMAGE_ID="${IMAGE_ID}"
+
+if [ -f /usr/lib/os-release ]; then
+    . /usr/lib/os-release
+else
+    ID="_any"
+fi
+
+mkdir -p /usr/lib/extension-release.d
+
+cat > "/usr/lib/extension-release.d/extension-release.${EXT_IMAGE_ID}" << EOF
+ID=${ID}
+SYSEXT_ID=${IMAGE_ID}
+SYSEXT_SCOPE=${SYSEXT_SCOPE:-initrd system portable}
+ARCHITECTURE=${ARCHITECTURE}
+EOF
+
+mkdir -p /etc/extension-release.d
+
+cat > "/etc/extension-release.d/extension-release.${EXT_IMAGE_ID}" << EOF
+ID=${ID}
+${VERSION_ID:+VERSION_ID="${VERSION_ID}"
+}CONFEXT_ID=${IMAGE_ID}
+CONFEXT_SCOPE=${CONFEXT_SCOPE:-initrd system portable}
+ARCHITECTURE=${ARCHITECTURE}
+EOF
