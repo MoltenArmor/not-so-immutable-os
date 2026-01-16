@@ -1,2 +1,3 @@
-- Create `mkosi.extra/usr/lib/repart.sysinstall.d`, add `CopyBlock=` to `usr.conf` and add `CopyFiles=` to `esp.conf` once `systemd-sysinstall` is added to systemd.
-- Disable `kernel-install` scripts once `systemd-sysinstall` is added to systemd (use `CopyFiles=` in `esp.conf` instead).
+- Create `mkosi.extra/usr/lib/repart.sysinstall.d`, add `CopyBlock=` to `usr.conf` and add `CopyFiles=` to `esp.conf` when `systemd-sysinstall` is added to systemd.
+- Disable `kernel-install` scripts when `systemd-sysinstall` is added to systemd (use `CopyFiles=` in `esp.conf` instead).
+- Stop making symlinks under `/var/lib/confexts` when `/var/lib/extensions` can save both sysexts and confexts.
