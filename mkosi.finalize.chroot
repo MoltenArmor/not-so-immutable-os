@@ -1,11 +1,11 @@
 #!/bin/sh
-# SPDX-License-Identifier: LGPL-2.1-or-later
 set -ue
 
 # Capture the entirety of /etc in /usr/share/factory/etc so we can use
 # systemd-tmpfiles to symlink individual directories from it to /etc.
-mkdir -p /usr/share/factory/etc /usr/share/factory/var/lib/apt /usr/share/factory/var/lib/dpkg && \
-cp --archive --no-target-directory --update=none /etc /usr/share/factory/etc && \
-cp --archive --no-target-directory --update=none /var/lib/apt /usr/share/factory/var/lib/apt && \
+mkdir -p /usr/share/factory/etc /usr/share/factory/var/lib/apt /usr/share/factory/var/lib/dpkg
+cp --archive --no-target-directory --update=none /etc /usr/share/factory/etc
+# Auto-installed info.
+cp --archive --no-target-directory --update=none /var/lib/apt/extended_states /usr/share/factory/var/lib/apt/extended_states
+# Installed packages info.
 cp --archive --no-target-directory --update=none /var/lib/dpkg /usr/share/factory/var/lib/dpkg
-
