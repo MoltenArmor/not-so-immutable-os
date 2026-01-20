@@ -9,13 +9,31 @@ else
     ID="_any"
 fi
 
+is_empty() {
+    for d in "$@"; do
+        if [ -d "${d}" ] && [ -n "$(ls -A "${d}" 2> /dev/null)" ]; then
+            return 1
+        fi
+    done
+    return 0
+}
+
+SYSEXT_RELOAD=
+! is_empty /usr/lib/systemd/system /usr/lib/systemd/user \
+    && SYSEXT_RELOAD="EXTENSION_RELOAD_MANAGER=1"
+
+CONFEXT_RELOAD=
+! is_empty /etc/systemd/system /etc/systemd/user \
+    && CONFEXT_RELOAD="EXTENSION_RELOAD_MANAGER=1"
+
 mkdir -p /usr/lib/extension-release.d
 
 cat > "/usr/lib/extension-release.d/extension-release.${EXT_IMAGE_ID}" << EOF
 ID=${ID}
 SYSEXT_ID=${IMAGE_ID}
 SYSEXT_SCOPE=${SYSEXT_SCOPE:-initrd system portable}
-ARCHITECTURE=${ARCHITECTURE}
+${SYSEXT_RELOAD:+"${SYSEXT_RELOAD}"
+}ARCHITECTURE=${ARCHITECTURE}
 EOF
 
 mkdir -p /etc/extension-release.d
@@ -25,5 +43,6 @@ ID=${ID}
 ${VERSION_ID:+VERSION_ID="${VERSION_ID}"
 }CONFEXT_ID=${IMAGE_ID}
 CONFEXT_SCOPE=${CONFEXT_SCOPE:-initrd system portable}
-ARCHITECTURE=${ARCHITECTURE}
+${CONFEXT_RELOAD:+"${CONFEXT_RELOAD}"
+}ARCHITECTURE=${ARCHITECTURE}
 EOF
