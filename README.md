@@ -4,8 +4,7 @@ A system built with mkosi for my own usage.
 This system is based on Debian, using as many systemd components as we can. Basically it is based on the idea of [immutable `/usr`](https://0pointer.net/blog/fitting-everything-together.html), but it does not enable secure boot and verity by default.
 
 Profiles:
-- `desktop`: Include desktop base files in the main image, including `pipewire`, `upower`, `accountservice` and so on.
-- `sysext-only`: Enable some special config to build sysext images only.
+- `ext-only`: Enable some special config to build sysext images only.
 
 Sysext apps:
 - `ext-desktop`: Desktop environment, it has these profiles:
