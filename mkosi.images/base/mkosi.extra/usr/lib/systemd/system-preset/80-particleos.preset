@@ -21,3 +21,5 @@ disable wpa_supplicant*
 disable systemd-sysupdate*
 
 enable update-etc.service
+enable update-package-metadata.service
+enable start-extension-services.service

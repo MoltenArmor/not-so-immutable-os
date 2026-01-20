@@ -1,9 +1,0 @@
-#!/bin/sh
-set -ue
-
-# Copy package metadata from /usr/share/factory asynchronously.
-cp -rpf --update=all /usr/share/factory/var / &
-
-# This is intended to fix some problems caused by systemd-sysext.
-# When systemd-sysext merge sysext images, it won't trigger those services inside to be activated.
-systemctl --no-block default

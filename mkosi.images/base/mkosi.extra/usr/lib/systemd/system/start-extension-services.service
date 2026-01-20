@@ -1,0 +1,16 @@
+[Unit]
+Description=Re-trigger default target after extensions are merged
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+After=systemd-tmpfiles-setup.service
+Before=sysinit.target
+
+[Service]
+Type=oneshot
+# Re-trigger the default target to ensure that units added by extensions
+# are included in the transaction.
+ExecStart=/usr/bin/systemctl --no-block default
+
+[Install]
+WantedBy=sysinit.target

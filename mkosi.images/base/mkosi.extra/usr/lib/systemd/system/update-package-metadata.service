@@ -1,0 +1,14 @@
+[Unit]
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+Before=systemd-update-done.service
+
+[Service]
+Type=oneshot
+# Copy preserved package metadata from /usr/share/factory.
+ExecStart=cp -rpf --update=all /usr/share/factory/var /
+RemainAfterExit=yes
+
+[Install]
+WantedBy=systemd-update-done.service
