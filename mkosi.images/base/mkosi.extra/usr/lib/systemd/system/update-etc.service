@@ -2,7 +2,7 @@
 DefaultDependencies=no
 Conflicts=shutdown.target
 Before=shutdown.target
-Before=systemd-update-done.service
+Before=systemd-confext.service
 ConditionNeedsUpdate=/etc
 
 [Service]

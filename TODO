@@ -1,5 +1,7 @@
 - Create `mkosi.extra/usr/lib/repart.sysinstall.d`, add `CopyBlock=` to `usr.conf` and add `CopyFiles=` to `esp.conf` when `systemd-sysinstall` is added to systemd.
 - Disable `kernel-install` scripts when `systemd-sysinstall` is added to systemd (use `CopyFiles=` in `esp.conf` instead).
 - Stop making symlinks under `/var/lib/confexts` when `/var/lib/extensions` can save both sysexts and confexts.
-- `systemd-networkd-wait-online.service -> /dev/null` will work when systemd 39410 is merged.
-- Add drop-in config for `systemd-confext-sysroot.service` in default initrd when systemd 39410 is merged.
+- `systemd-networkd-wait-online.service -> /dev/null` symlink in confext will not work (as expected to mask `s-n-w-o.service`) until systemd #39410 is merged.
+- Add drop-in config for `systemd-confext-sysroot.service` (`exec.conf`) in default initrd when systemd #39410 is merged.
+- Move `update-etc.service` (maybe need to add `RootDirectory=/sysroot`) to initrd and run before `systemd-confext-sysroot.service` when systemd #39410 is merged (but no need for `update-package-metadata.service`).
+- Drop `start-extension-services.service` when systemd #39410 is merged.
