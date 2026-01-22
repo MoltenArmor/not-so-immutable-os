@@ -46,3 +46,18 @@ CONFEXT_SCOPE=${CONFEXT_SCOPE:-initrd system portable}
 ${CONFEXT_RELOAD:+"${CONFEXT_RELOAD}"
 }ARCHITECTURE=${ARCHITECTURE}
 EOF
+
+SYSTEMD_TMPFILES_FORCE_SUBVOL=0 \
+    systemd-tmpfiles \
+    --boot \
+    --create \
+    --remove \
+    --prefix=/etc || {
+        RET="${?}"
+        test "${RET}" -eq 65 ||
+        test "${RET}" -eq 73
+    }
+
+systemctl preset-all
+
+systemctl --global preset-all
