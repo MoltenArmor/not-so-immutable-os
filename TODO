@@ -5,3 +5,4 @@
 - Add drop-in config for `systemd-confext-sysroot.service` (`exec.conf`) in default initrd when systemd #39410 is merged.
 - Move `update-etc.service` (maybe need to add `RootDirectory=/sysroot`) to initrd and run before `systemd-confext-sysroot.service` when systemd #39410 is merged (but no need for `update-package-metadata.service`).
 - Drop `start-extension-services.service` when systemd #39410 is merged.
+- Drop `homed2accounts` when accountsservice releases a new version.
