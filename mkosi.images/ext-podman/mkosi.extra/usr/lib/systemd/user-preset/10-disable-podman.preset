@@ -1,0 +1,3 @@
+# When podman.service is started, it always tries to connect to FD3
+# and fails when the user logins for the first time
+disable podman.service
