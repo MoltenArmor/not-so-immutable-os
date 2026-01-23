@@ -1,0 +1,11 @@
+[Unit]
+Description=Cache systemd-homed homes in accountsservice
+After=systemd-homed.service accounts-daemon.service
+Wants=systemd-homed.service accounts-daemon.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/homed2accounts
+
+[Install]
+WantedBy=multi-user.target

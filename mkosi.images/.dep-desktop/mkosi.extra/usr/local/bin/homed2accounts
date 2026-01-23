@@ -1,0 +1,26 @@
+#!/usr/bin/python3
+# /// script
+# requires-python = ">= 3.10"
+# dependencies = ["pydbus"]
+# ///
+
+import dbus
+
+
+if __name__ == "__main__":
+    bus = dbus.SystemBus()
+    acct = dbus.Interface(
+        bus.get_object("org.freedesktop.Accounts", "/org/freedesktop/Accounts"),
+        "org.freedesktop.Accounts"
+    )
+
+    for h in dbus.Interface(
+        bus.get_object("org.freedesktop.home1", "/org/freedesktop/home1"),
+        "org.freedesktop.home1.Manager"
+    ).ListHomes():
+        try:
+            acct.UncacheUser(h[0])
+        except:
+            pass
+
+        acct.CacheUser(h[0])
