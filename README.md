@@ -72,5 +72,5 @@ unlock-etc [-d|--directly] <command>
 ```
 
 Tips:
-- After attaching sysext (and their confext dependencies) images, you are recommended to run `unlock-etc (systemd-sysusers && systemd-tmpfiles --create && systemtl preset-all)`.
-- After attaching GNOME-related sysext images (for example, `ext-gnome-boxes`), you **HAVE TO** run `glib-compile-schemas /usr/share/glib-2.0/schemas/ --targetdir=~/.local/share/glib-2.0/schemas/` to use these apps.
+- After attaching sysext (and their confext dependencies) images, you are recommended to run `unlock-etc (systemd-sysusers && systemd-tmpfiles --create)`.
+- After attaching GNOME-related sysext images (for example, `ext-gnome-boxes`), you **HAVE TO** run `run0 glib-compile-schemas /usr/share/glib-2.0/schemas/ --targetdir=/var/lib/glib-2.0/schemas/` to use these apps.

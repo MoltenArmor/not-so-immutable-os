@@ -1,0 +1,9 @@
+{
+    "userName": "avahi-autoipd",
+    "uid": 71,
+    "gid": 71,
+    "realName": "Avahi AutoIP Daemon",
+    "homeDirectory": "/var/lib/avahi-autoipd",
+    "shell": "/usr/sbin/nologin",
+    "storage": "classic"
+}

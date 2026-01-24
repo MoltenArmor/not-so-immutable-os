@@ -1,0 +1,9 @@
+{
+    "userName": "avahi",
+    "uid": 70,
+    "gid": 70,
+    "realName": "Avahi mDNS Daemon",
+    "homeDirectory": "/run/avahi-daemon",
+    "shell": "/usr/sbin/nologin",
+    "storage": "classic"
+}

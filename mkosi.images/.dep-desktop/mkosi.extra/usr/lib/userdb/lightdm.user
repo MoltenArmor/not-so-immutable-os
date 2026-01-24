@@ -1,0 +1,9 @@
+{
+    "userName": "lightdm",
+    "uid": 74,
+    "gid": 74,
+    "realName": "Light Display Manager",
+    "homeDirectory": "/var/lib/lightdm",
+    "shell": "/usr/sbin/nologin",
+    "storage": "classic"
+}
