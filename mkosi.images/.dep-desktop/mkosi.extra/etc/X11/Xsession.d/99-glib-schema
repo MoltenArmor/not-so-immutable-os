@@ -1,0 +1,7 @@
+GSETTINGS_SCHEMA_DIR="/var/lib/glib-2.0/schemas:/usr/share/glib-2.0/schemas"
+export GSETTINGS_SCHEMA_DIR
+
+if [ -n "$DBUS_SESSION_BUS_ADDRESS" ] &&
+    command -v dbus-update-activation-environment > /dev/null; then
+    dbus-update-activation-environment --verbose --systemd GSETTINGS_SCHEMA_DIR
+fi
