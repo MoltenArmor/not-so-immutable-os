@@ -12,7 +12,7 @@ for ext_image_path in "${OUTPUT_PATH}"/ext-*.raw; do
     fi
     importctl import-raw "${ext_image_path}" --class=sysext
 
-    ln -s "../extensions/${ext_image_basename}" "/var/lib/confexts/${ext_image_basename}"
+    ln -sf "../extensions/${ext_image_basename}" "/var/lib/confexts/${ext_image_basename}"
 done
 
 printf '%s\n' "Import done! Please execute 'systemctl reload systemd-sysext.service systemd-confext.service'!"
