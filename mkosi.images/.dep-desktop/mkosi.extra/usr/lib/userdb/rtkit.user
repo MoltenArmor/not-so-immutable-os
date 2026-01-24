@@ -1,7 +1,7 @@
 {
     "userName": "rtkit",
-    "uid": 75,
-    "gid": 75,
+    "uid": 175,
+    "gid": 175,
     "realName": "RealtimeKit",
     "homeDirectory": "/proc",
     "shell": "/usr/sbin/nologin",

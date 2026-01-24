@@ -1,7 +1,7 @@
 {
     "userName": "dnsmasq",
-    "uid": 73,
-    "gid": 73,
+    "uid": 173,
+    "gid": 173,
     "realName": "Dnsmasq DHCP and DNS server",
     "homeDirectory": "/var/lib/misc",
     "shell": "/usr/sbin/nologin",
