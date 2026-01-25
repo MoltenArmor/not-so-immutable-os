@@ -7,4 +7,4 @@
 - Drop `start-extension-services.service` when systemd #39410 is merged.
 - Drop `homed2accounts` when accountsservice releases a new version.
 - Write JSON user records for sysexts.
-
+- Write a script to automatically install `mkosi`, clone the repo, and build `ext-desktop`.
