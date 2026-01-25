@@ -8,3 +8,4 @@
 - Drop `homed2accounts` when accountsservice releases a new version.
 - Write JSON user records for sysexts.
 - Write a script to automatically install `mkosi`, clone the repo, and build `ext-desktop`.
+- Use `systemd-tmpfiles` to manage `/etc/shells`
