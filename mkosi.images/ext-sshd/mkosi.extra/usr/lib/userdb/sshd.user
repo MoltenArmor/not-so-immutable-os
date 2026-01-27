@@ -1,0 +1,9 @@
+{
+    "userName": "sshd",
+    "uid": 196,
+    "gid": 196,
+    "realName": "sshd user",
+    "homeDirectory": "/run/sshd",
+    "shell": "/usr/sbin/nologin",
+    "storage": "classic"
+}
