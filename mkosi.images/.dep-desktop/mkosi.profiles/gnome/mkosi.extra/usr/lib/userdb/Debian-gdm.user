@@ -1,0 +1,9 @@
+{
+    "userName": "Debian-gdm",
+    "uid": 183,
+    "gid": 183,
+    "realName": "Gnome Display Manager",
+    "homeDirectory": "/var/lib/gdm3",
+    "shell": "/bin/false",
+    "storage": "classic"
+}
