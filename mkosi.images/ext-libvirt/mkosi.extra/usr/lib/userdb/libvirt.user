@@ -1,0 +1,9 @@
+{
+    "userName": "libvirt-qemu",
+    "uid": 64055,
+    "gid": 64055,
+    "realName": "Libvirt QEMU user",
+    "homeDirectory": "/nonexistent",
+    "shell": "/usr/sbin/nologin",
+    "storage": "classic"
+}
