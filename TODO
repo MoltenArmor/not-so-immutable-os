@@ -1,6 +1,6 @@
 - Create `mkosi.extra/usr/lib/repart.sysinstall.d`, add `CopyBlock=` to `usr.conf` and add `CopyFiles=` to `esp.conf` when `systemd-sysinstall` is added to systemd.
-- Disable `kernel-install` scripts when `systemd-sysinstall` is added to systemd (use `CopyFiles=` in `esp.conf` instead).
-- Stop making symlinks under `/var/lib/confexts` when `/var/lib/extensions` can save both sysexts and confexts.
+- ~~Disable `kernel-install` scripts when `systemd-sysinstall` is added to systemd (use `CopyFiles=` in `esp.conf` instead)~~(This is abandoned).
+- Stop making symlinks under `/var/lib/confexts` when `/var/lib/extensions` can save both sysexts and confexts (systemd TODO).
 - `systemd-networkd-wait-online.service -> /dev/null` symlink in confext will not work (as expected to mask `s-n-w-o.service`) until systemd #39410 is merged.
 - Add drop-in config for `systemd-confext-sysroot.service` (`exec.conf`) in default initrd when systemd #39410 is merged.
 	- Then use `systemd-tmpfiles` to manage `/etc/shells` (clean, then write).
@@ -9,4 +9,4 @@
 - Drop `homed2accounts` when accountsservice releases a new version.
 - Write JSON user records for sysexts.
 - Write a script to automatically install `mkosi`, clone the repo, and build `ext-desktop`.
-- Maybe use new sysinstall initrd style (base UKI with extension) when sysinstall is added to systemd.
+- Maybe use new sysinstall initrd style (base UKI with extension) when sysinstall is added to systemd (#38764).
