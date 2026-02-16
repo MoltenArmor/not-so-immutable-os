@@ -1,0 +1,9 @@
+{
+    "userName": "speech-dispatcher",
+    "uid": 187,
+    "gid": 187,
+    "realName": "Speech Dispatcher",
+    "homeDirectory": "/run/speech-dispatcher",
+    "shell": "/bin/false",
+    "storage": "classic"
+}
