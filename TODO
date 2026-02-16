@@ -4,6 +4,7 @@
 - When `start-extension-service.service` is deleted, `systemd-networkd-wait-online.service -> /dev/null` symlink in confext will not work (as expected to mask `s-n-w-o.service`) until systemd #39410 is merged.
 	- Drop `start-extension-services.service` when systemd #39410 is merged.
 - `mkosi.images/.dep-desktop/mkosi.extra/etc/environment.d/99-glib-schema.conf` will not work (as expected to mask set environment) until systemd #39410 is merged.
+	- We run `systemctl set-environment` manually in `start-extension-services.service`.
 - Add drop-in config for `systemd-confext-sysroot.service` (`exec.conf`) in default initrd when systemd #39410 is merged.
 	- Then use `systemd-tmpfiles` to manage `/etc/shells` (clean, then write).
 - Move `update-etc.service` (maybe need to add `RootDirectory=/sysroot`) to initrd and run before `systemd-confext-sysroot.service` when systemd #39410 is merged (but no need for `update-package-metadata.service`).
