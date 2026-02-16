@@ -1,5 +1,6 @@
 #!/bin/bash
-# SPDX-License-Identifier: LGPL-2.1-or-later
 set -ue
 
 find mkosi.output/ -maxdepth 1 -type f,l -delete
+
+rm -rf mkosi.output/.dep-*
