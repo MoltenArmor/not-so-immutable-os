@@ -1,0 +1,9 @@
+{
+    "userName": "gnome-remote-desktop",
+    "uid": 186,
+    "gid": 186,
+    "realName": "GNOME Remote Desktop",
+    "homeDirectory": "/var/lib/gnome-remote-desktop",
+    "shell": "/usr/sbin/nologin",
+    "storage": "classic"
+}

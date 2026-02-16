@@ -1,0 +1,9 @@
+{
+    "userName": "geoclue",
+    "uid": 189,
+    "gid": 189,
+    "realName": "Geoclue user",
+    "homeDirectory": "/var/lib/geoclue",
+    "shell": "/usr/sbin/nologin",
+    "storage": "classic"
+}

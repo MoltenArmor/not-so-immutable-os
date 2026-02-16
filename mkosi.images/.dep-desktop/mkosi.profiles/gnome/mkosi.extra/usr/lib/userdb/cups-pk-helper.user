@@ -1,0 +1,9 @@
+{
+    "userName": "cups-pk-helper",
+    "uid": 191,
+    "gid": 191,
+    "realName": "cups-pk-helper",
+    "homeDirectory": "/nonexistent",
+    "shell": "/usr/sbin/nologin",
+    "storage": "classic"
+}
