@@ -1,0 +1,9 @@
+{
+    "userName": "sddm",
+    "uid": 283,
+    "gid": 283,
+    "realName": "SDDM Greeter Account",
+    "homeDirectory": "/var/lib/sddm",
+    "shell": "/usr/sbin/nologin",
+    "storage": "classic"
+}
