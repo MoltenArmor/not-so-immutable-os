@@ -1,0 +1,30 @@
+[Unit]
+Description=Simple Desktop Display Manager
+Documentation=man:sddm(1) man:sddm.conf(5)
+# Change this if you want to start sddm in a different tty
+Conflicts=getty@tty1.service getty@tty7.service
+After=getty@tty1.service getty@tty7.service
+
+After=systemd-user-sessions.service systemd-logind.service
+# Workaround entropy starvation
+After=haveged.service
+
+# If using tty1 and plymouth, sddm will fail till plymouth stops
+# consider using:
+After=plymouth-quit.service
+
+# or to forcefully stop plymouth and start earlier:
+## Conflicts=plymouth-quit-wait.service
+## After=plymouth-start.service plymouth-quit-wait.service
+## OnFailure=plymouth-quit.service
+
+[Service]
+# temporary safety check until all DMs are converted to correct
+# display-manager.service symlink handling
+ExecStart=/usr/bin/sddm
+Restart=always
+RestartSec=1s
+EnvironmentFile=-/etc/default/locale
+
+[Install]
+Alias=display-manager.service
