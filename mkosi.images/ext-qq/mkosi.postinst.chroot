@@ -6,7 +6,7 @@ TMP="$(mktemp -d)"
 clean() {
     rm -rf "${TMP}"
 }
-trap EXIT clean
+trap clean EXIT
 
 if [ "$ARCHITECTURE" = "x86-64" ]; then
     QQ_ARCH="amd64"

@@ -6,7 +6,7 @@ TMP="$(mktemp -d)"
 clean() {
     rm -rf "${TMP}"
 }
-trap EXIT clean
+trap clean EXIT
 
 curl -sSL "https://github.com/helix-editor/helix/releases/download/25.07/helix_25.7.0-1_amd64.deb" -o "${TMP}/helix.deb"
 
