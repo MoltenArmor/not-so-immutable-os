@@ -1,9 +1,0 @@
-#!/bin/sh
-set -ue
-
-# Avoid update-alternatives link.
-# I guess the failure of regulatory.db loading is becuase
-# /etc and /usr is not on the same partition.
-# Anyway, this fixes it.
-ln -sf regulatory.db-debian /usr/lib/firmware/regulatory.db
-ln -sf regulatory.db.p7s-debian /usr/lib/firmware/regulatory.db.p7s
