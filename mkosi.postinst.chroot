@@ -1,6 +1,13 @@
 #!/bin/sh
 set -ue
 
+# Avoid update-alternatives link.
+# I guess the failure of regulatory.db loading is becuase
+# /etc and /usr is not on the same partition.
+# Anyway, this fixes it.
+ln -sf regulatory.db-debian /usr/lib/firmware/regulatory.db
+ln -sf regulatory.db.p7s-debian /usr/lib/firmware/regulatory.db.p7s
+
 sed -i '/^# C.UTF-8.*/c\C.UTF-8 UTF-8' /etc/locale.gen
 sed -i '/^# en_US.UTF-8.*/c\en_US.UTF-8 UTF-8' /etc/locale.gen
 sed -i '/^# zh_CN.UTF-8.*/c\zh_CN.UTF-8 UTF-8' /etc/locale.gen
