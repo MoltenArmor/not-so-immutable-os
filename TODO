@@ -8,7 +8,7 @@
 - Add drop-in config for `systemd-confext-sysroot.service` (`exec.conf`) in default initrd when systemd #39410 is merged.
 	- Then use `systemd-tmpfiles` to manage `/etc/shells` (clean, then write).
 - Move `update-etc.service` (maybe need to add `RootDirectory=/sysroot`) to initrd and run before `systemd-confext-sysroot.service` when systemd #39410 is merged (but no need for `update-package-metadata.service`).
-- Drop `homed2accounts` when accountsservice releases a new version.
+- Drop `homed2accounts` when [accountsservice 25.34.76](https://gitlab.freedesktop.org/accountsservice/accountsservice/-/releases/25.34.76) is packaged by Debian.
 - Write JSON user records for sysexts.
 - Write a script to automatically install `mkosi`, clone the repo, and build `ext-desktop`.
 - Maybe use new sysinstall initrd style (base UKI with extension) when sysinstall is added to systemd (#38764), so that we can split some firmware into ext image.
