@@ -3,3 +3,4 @@
 - Write JSON user records for sysexts.
 - Write a script to automatically install `mkosi`, clone the repo, and build `ext-desktop`.
 - Maybe use new sysinstall initrd style (base UKI with extension) so that we can split some firmware into ext image.
+- Use `systemd-tmpfiles` to manage `/etc/shells` (clean, then write).
