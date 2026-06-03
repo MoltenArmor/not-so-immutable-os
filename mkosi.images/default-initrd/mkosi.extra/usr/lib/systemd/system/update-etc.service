@@ -1,0 +1,17 @@
+[Unit]
+Description=Copy /etc from factory to /sysroot
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+Before=systemd-confext-sysroot.service
+After=sysroot.mount sysroot-usr.mount
+ConditionPathExists=/etc/initrd-release
+ConditionNeedsUpdate=/sysroot/etc
+
+[Service]
+Type=oneshot
+ExecStart=cp -rp --update=none /sysroot/usr/share/factory/etc /sysroot/
+RemainAfterExit=yes
+
+[Install]
+WantedBy=initrd.target

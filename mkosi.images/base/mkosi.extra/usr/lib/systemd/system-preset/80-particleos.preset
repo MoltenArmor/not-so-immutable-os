@@ -18,6 +18,4 @@ disable wpa_supplicant*
 # In order to avoid a Debian-specific bug (systemd-sysupdate.service/start failure)
 disable systemd-sysupdate*
 
-enable update-etc.service
 enable update-package-metadata.service
-enable start-extension-services.service
