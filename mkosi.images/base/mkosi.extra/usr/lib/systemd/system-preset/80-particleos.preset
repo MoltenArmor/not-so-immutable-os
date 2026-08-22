@@ -19,3 +19,5 @@ disable wpa_supplicant*
 disable systemd-sysupdate*
 
 enable update-package-metadata.service
+
+disable systemd-imdsd.socket
