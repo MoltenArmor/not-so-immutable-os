@@ -301,8 +301,19 @@ def main() -> None:
             for target in MANAGED_DIRS
             if Path(target).exists()
         }
+        # systemd-sysext owns both /usr and /opt once refreshed into ephemeral mode,
+        # even when no current extension populates /opt yet.
         layers = tuple(
-            Layer.from_status(target, statuses.get(target)) for target in MANAGED_DIRS
+            Layer(target, LayerKind.SYSEXT)
+            if target == "/opt"
+            and "/usr" in statuses
+            and statuses["/usr"]["owner"] == "sysext"
+            and (
+                (s := statuses.get(target)) is None
+                or MountState(s["state"]) is MountState.NOT_OVERLAY
+            )
+            else Layer.from_status(target, statuses.get(target))
+            for target in MANAGED_DIRS
         )
         return layers, statuses
 
