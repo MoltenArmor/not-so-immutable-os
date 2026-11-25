@@ -83,13 +83,14 @@ class ReportPayload(TypedDict):
 
 
 MUTABLECTL_STATE_DIR = os.getenv("MUTABLECTL_STATE_DIR", "/run/mutablectl")
-CONFEXT_MARKER = Path("/etc/.systemd-confext")
-SYSEXT_MARKER = Path("/usr/.systemd-sysext")
 EPHEMERAL_WORKSPACE = "/mh_workspace/"
 
-# Package manager metadata paths matching mkosi/installer/__init__.py;
-# paths under /usr are already covered by the /usr layer.
-PACKAGE_MANAGER_DIRS = (
+# Managed directories: system hierarchies plus package manager metadata paths
+# matching mkosi/installer/__init__.py (paths under /usr are covered by /usr).
+MANAGED_DIRS = (
+    "/etc",
+    "/usr",
+    "/opt",
     "/var/lib/apt",
     "/var/cache/apt",
     "/var/lib/dpkg",
@@ -117,18 +118,14 @@ class Layer:
     kind: LayerKind
 
     @classmethod
-    def discover(cls) -> tuple[Self, ...]:
-        return (
-            cls(
-                "/etc",
-                LayerKind.CONFEXT if CONFEXT_MARKER.is_dir() else LayerKind.TMPIFY,
-            ),
-            cls(
-                "/usr",
-                LayerKind.SYSEXT if SYSEXT_MARKER.is_dir() else LayerKind.TMPIFY,
-            ),
-            *(cls(target, LayerKind.TMPIFY) for target in PACKAGE_MANAGER_DIRS),
-        )
+    def from_status(cls, target: str, status: StatusPayload | None) -> Self:
+        match status["owner"] if status is not None else None:
+            case "confext":
+                return cls(target, LayerKind.CONFEXT)
+            case "sysext":
+                return cls(target, LayerKind.SYSEXT)
+            case _:
+                return cls(target, LayerKind.TMPIFY)
 
     def need_enter(self, status: StatusPayload | None) -> bool:
         """Whether this layer still needs to be switched to RW mode."""
@@ -298,6 +295,17 @@ def main() -> None:
             case LayerKind.TMPIFY:
                 _ = subprocess.run(["tmpify", "--restore", layer.target], check=True)
 
+    def discover() -> tuple[tuple[Layer, ...], dict[str, StatusPayload]]:
+        statuses = {
+            target: fetch_status(target)
+            for target in MANAGED_DIRS
+            if Path(target).exists()
+        }
+        layers = tuple(
+            Layer.from_status(target, statuses.get(target)) for target in MANAGED_DIRS
+        )
+        return layers, statuses
+
     match command:
         case "enter":
             with store.lock():
@@ -309,12 +317,7 @@ def main() -> None:
                         )
                     active = {}
 
-                layers = Layer.discover()
-                statuses = {
-                    layer.target: fetch_status(layer.target)
-                    for layer in layers
-                    if Path(layer.target).exists()
-                }
+                layers, statuses = discover()
                 if conflicts := [
                     layer.target
                     for layer in layers
@@ -338,6 +341,13 @@ def main() -> None:
                     # Record before acting so a mid-flight crash is still recoverable.
                     active = {**active, layer.target: layer.kind}
                     store.save(active)
+                    # A single systemd-sysext refresh already covers both /usr and /opt;
+                    # skip redundant calls when another sysext layer already refreshed.
+                    if layer.kind is LayerKind.SYSEXT and any(
+                        p.kind is LayerKind.SYSEXT for p in applied
+                    ):
+                        applied = (*applied, layer)
+                        continue
                     try:
                         apply(layer)
                     except subprocess.CalledProcessError:
@@ -371,8 +381,9 @@ def main() -> None:
                         raise FileNotFoundError(
                             "No usable state file found; use --force to clean up detected layers"
                         )
+                    layers, _ = discover()
                     failures: list[str] = []
-                    for layer in reversed(Layer.discover()):
+                    for layer in reversed(layers):
                         if not Path(layer.target).exists():
                             continue
                         try:
@@ -411,7 +422,7 @@ def main() -> None:
             if os.access("/etc", os.W_OK):
                 sys.exit(subprocess.run(cmd).returncode)
 
-            if not CONFEXT_MARKER.is_dir():
+            if fetch_status("/etc")["owner"] != "confext":
                 raise RuntimeError(
                     "/etc is not managed by systemd-confext, nothing to unlock"
                 )
@@ -449,15 +460,15 @@ def main() -> None:
                 )
 
         case "status":
-            layers = Layer.discover()
+            layers, statuses = discover()
             active = store.load()
             rows: list[LayerReport] = [
                 {
                     "target": layer.target,
                     "kind": layer.kind,
                     "state": (
-                        fetch_status(layer.target)["state"]
-                        if Path(layer.target).exists()
+                        status["state"]
+                        if (status := statuses.get(layer.target)) is not None
                         else MountState.NOT_FOUND
                     ),
                     "active": layer.target in active if active else False,

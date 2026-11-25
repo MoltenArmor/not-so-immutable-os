@@ -63,6 +63,7 @@ class MountEntry:
 
     mount_point: str
     fstype: str
+    source: str
     options: Mapping[str, str]
 
     @property
@@ -74,9 +75,10 @@ class MountEntry:
         return self.options.get("lowerdir")
 
     @classmethod
-    def parse_mountinfo(
-        cls, path: Path = Path("/proc/self/mountinfo")
-    ) -> tuple[Self, ...]:
+    def parse_mountinfo(cls, path: Path | None = None) -> tuple[Self, ...]:
+        if path is None:
+            path = Path("/proc/self/mountinfo")
+
         entries: list[Self] = []
         for line in path.read_text().splitlines():
             left, sep, right = line.partition(" - ")
@@ -98,7 +100,7 @@ class MountEntry:
                 for k, eq, v in (opt.partition("="),)
                 if eq
             }
-            entries.append(cls(mount_point, rfields[0], options))
+            entries.append(cls(mount_point, rfields[0], rfields[1], options))
         return tuple(entries)
 
     @classmethod
@@ -106,11 +108,11 @@ class MountEntry:
         return max(
             (
                 e
-                for e in entries
+                for e in reversed(entries)
                 if target == e.mount_point
                 or target.startswith(e.mount_point.rstrip("/") + "/")
             ),
-            # Find the deepest mount point
+            # Find the deepest, topmost mount point
             key=lambda e: len(e.mount_point),
             default=None,
         )
@@ -196,7 +198,7 @@ class OverlayTarget:
             "overlay",
             mount.upperdir,
             mount.lowerdir,
-            "external",
+            mount.source,
             None,
         )
 
@@ -214,7 +216,7 @@ class OverlayTarget:
                     "mount",
                     "-t",
                     "overlay",
-                    "overlay",
+                    "tmpify",
                     "-o",
                     f"lowerdir={self.path},upperdir={self.upperdir},workdir={self.workdir}",
                     self.path,
@@ -275,7 +277,10 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    if (args.path is not None or args.restore is not None) and os.geteuid() != 0:
+    if (
+        cast(str | None, args.path) is not None
+        or cast(str | None, args.restore) is not None
+    ) and os.geteuid() != 0:
         raise PermissionError("tmpify must be run as root")
 
     base_dir, entries = Path(TMPIFY_BASE_DIR), MountEntry.parse_mountinfo()
@@ -289,14 +294,14 @@ def main() -> None:
             if stub_dir.is_dir() and str(stub_dir / "upper") not in active_uppers:
                 shutil.rmtree(stub_dir, ignore_errors=True)
 
-    if args.list:
+    if cast(bool, args.list):
         prefix = f"{base_dir}/"
         statuses = tuple(
             OverlayTarget(e.mount_point, base_dir).inspect(entries)
             for e in entries
             if e.fstype == "overlay" and e.upperdir and e.upperdir.startswith(prefix)
         )
-        if args.json:
+        if cast(bool, args.json):
             print(json.dumps([s.as_payload() for s in statuses], indent=2))
         else:
             for s in statuses:
@@ -307,7 +312,7 @@ def main() -> None:
         status = OverlayTarget(str(Path(raw_status).resolve()), base_dir).inspect(
             entries
         )
-        if args.json:
+        if cast(bool, args.json):
             print(json.dumps(status.as_payload(), indent=2))
         else:
             print(f"{status.path}: {status.state}")
