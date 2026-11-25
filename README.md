@@ -29,10 +29,10 @@ Sysext apps:
 To build it:
 
 ```
-mkosi --dependency base build
+mkosi --dependency base -B build
 ```
 
-To try it in VM:
+To test it in an VM:
 
 ```
 mkosi --console gui vm
