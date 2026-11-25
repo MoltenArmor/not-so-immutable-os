@@ -53,7 +53,9 @@ mkosi --profile ext-only [--dependency <APP>] build
 
 For example, to build XFCE:
 ```
-mkosi --profile ext-only --dependency base --profile xfce build
+mkosi --profile ext-only --dependency base build
+
+mkosi --profile ext-only --dependency ext-desktop --profile xfce build
 ```
 
 Enter volatile RW mode:
