@@ -58,19 +58,56 @@ mkosi --profile ext-only --dependency base --profile xfce build
 
 Enter volatile RW mode:
 ```
-enter-rw
+mutablectl enter
 ```
+
+`enter` makes `/etc`, `/usr` and the metadata of the package managers writable.
+The package manager directories are the ones mkosi cleans up, so that every
+package manager we know of can be used: `/var/lib/apt`, `/var/cache/apt`,
+`/var/lib/dpkg`, `/var/lib/dnf`, `/var/cache/dnf`, `/var/lib/libdnf5`,
+`/var/cache/libdnf5`, `/var/lib/rpm`, `/var/lib/pacman`, `/var/cache/pacman`,
+`/var/lib/zypp`, `/var/cache/zypp`, `/var/lib/apk` and `/var/cache/apk`.
 
 Exit volatile RW mode and drop all operations:
 ```
-exit-rw
+mutablectl exit
 ```
 
 Execute command with `/etc` writable:
 ```
-unlock-etc [-d|--directly] <command>
+mutablectl unlock [-d|--directly] [--ephemeral] <command>
 ```
 
+`unlock` has three modes.  By default the changes are merged into a mutable
+confext, they are **not** thrown away when the command is done.  With
+`--ephemeral` they land in a temporary directory and are discarded, and with
+`--directly` the confexts are unmerged, so that the changes are written to the
+real `/etc` and stay there.
+
+Show the state of every layer:
+```
+mutablectl status [--json]
+```
+
+Make any directory disposable:
+```
+tmpify <directory>
+```
+
+`tmpify` is a general purpose tool: it mounts an overlay filesystem on the
+directory, so that every write ends up in a throw away layer under
+`/run/tmpify`.  Use it to try something out without touching the real files.
+
+```
+tmpify /some/directory       # Mount a disposable overlay on /some/directory
+tmpify --restore /some/directory   # Unmount it and throw the writes away
+tmpify --status /some/directory --json   # Report how it is mounted
+tmpify --list                # List every overlay tmpify manages
+```
+
+`tmpify` only unmounts the overlays it created itself, it refuses to touch a
+foreign overlay that happens to sit on the same path.
+
 Tips:
-- After attaching sysext (and their confext dependencies) images, you are recommended to run `unlock-etc systemd-tmpfiles --create`.
+- After attaching sysext (and their confext dependencies) images, you are recommended to run `mutablectl unlock systemd-tmpfiles --create`.
 - After attaching GNOME-related sysext images (for example, `ext-gnome-boxes`), you **HAVE TO** run `run0 glib-compile-schemas /usr/share/glib-2.0/schemas/ --targetdir=/var/lib/glib-2.0/schemas/` to use these apps.

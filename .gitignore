@@ -3,3 +3,4 @@ mkosi.local*
 mkosi.cache/
 mkosi.output/
 mkosi.version
+__pycache__/

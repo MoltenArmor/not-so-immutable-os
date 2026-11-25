@@ -1,0 +1,479 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# ///
+# pyright: strict
+"""Control the mutability layers of this system.
+
+The system is built around an immutable /usr and a read-only /etc.  This tool
+puts the layers that are needed into a temporary writable state and takes them
+back out again afterwards.
+
+It never touches a mount it did not create: every overlay is owned by the
+``tmpify`` tool and this program talks to it strictly across the process
+boundary through its JSON output.  Only the minimal set of targets that this
+tool itself switched is recorded in /run/mutablectl/state.json; live mount
+state is always queried directly from tmpify and systemd.
+
+Usage:
+    mutablectl enter                     Enter the temporary RW mode
+    mutablectl exit [--force]            Leave the temporary RW mode
+    mutablectl unlock [--ephemeral] [-d] <command> [args...]
+    mutablectl status [--json]           Show the state of every layer
+"""
+
+import argparse
+import contextlib
+import dataclasses
+import enum
+import fcntl
+import json
+import logging
+import os
+import shutil
+import signal
+import subprocess
+import sys
+from collections.abc import Generator, Mapping, Sequence
+from pathlib import Path
+from types import FrameType
+from typing import Self, TypedDict, cast
+
+
+class LayerKind(enum.StrEnum):
+    CONFEXT = "confext"
+    SYSEXT = "sysext"
+    TMPIFY = "tmpify"
+
+
+class MountState(enum.StrEnum):
+    NOT_FOUND = "not-found"
+    NOT_OVERLAY = "not-overlay"
+    TMPIFIED = "tmpified"
+    FOREIGN = "foreign"
+
+
+class StatusPayload(TypedDict):
+    """JSON contract returned by ``tmpify --status --json``."""
+
+    path: str
+    state: str
+    fstype: str | None
+    upperdir: str | None
+    lowerdir: str | None
+    owner: str | None
+    stub: str | None
+
+
+class StatePayload(TypedDict):
+    """Minimal persisted record: only the layers this tool itself activated."""
+
+    active: dict[str, str]
+
+
+class LayerReport(TypedDict):
+    target: str
+    kind: str
+    state: str
+    active: bool
+
+
+class ReportPayload(TypedDict):
+    layers: list[LayerReport]
+
+
+MUTABLECTL_STATE_DIR = os.getenv("MUTABLECTL_STATE_DIR", "/run/mutablectl")
+CONFEXT_MARKER = Path("/etc/.systemd-confext")
+SYSEXT_MARKER = Path("/usr/.systemd-sysext")
+EPHEMERAL_WORKSPACE = "/mh_workspace/"
+
+# Package manager metadata paths matching mkosi/installer/__init__.py;
+# paths under /usr are already covered by the /usr layer.
+PACKAGE_MANAGER_DIRS = (
+    "/var/lib/apt",
+    "/var/cache/apt",
+    "/var/lib/dpkg",
+    "/var/lib/dnf",
+    "/var/cache/dnf",
+    "/var/lib/libdnf5",
+    "/var/cache/libdnf5",
+    "/var/lib/rpm",
+    "/var/lib/pacman",
+    "/var/cache/pacman",
+    "/var/lib/zypp",
+    "/var/cache/zypp",
+    "/var/lib/apk",
+    "/var/cache/apk",
+)
+
+logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class Layer:
+    """One managed layer and the mechanism used to make it writable."""
+
+    target: str
+    kind: LayerKind
+
+    @classmethod
+    def discover(cls) -> tuple[Self, ...]:
+        return (
+            cls(
+                "/etc",
+                LayerKind.CONFEXT if CONFEXT_MARKER.is_dir() else LayerKind.TMPIFY,
+            ),
+            cls(
+                "/usr",
+                LayerKind.SYSEXT if SYSEXT_MARKER.is_dir() else LayerKind.TMPIFY,
+            ),
+            *(cls(target, LayerKind.TMPIFY) for target in PACKAGE_MANAGER_DIRS),
+        )
+
+    def need_enter(self, status: StatusPayload | None) -> bool:
+        """Whether this layer still needs to be switched to RW mode."""
+        if status is None:
+            return False
+        state = MountState(status["state"])
+        if self.kind is LayerKind.TMPIFY:
+            return state is MountState.NOT_OVERLAY
+        # For confext/sysext, skip if systemd already has it in ephemeral mode.
+        upperdir = status["upperdir"]
+        return not (upperdir is not None and EPHEMERAL_WORKSPACE in upperdir)
+
+    def is_conflict(self, status: StatusPayload | None) -> bool:
+        return (
+            self.kind is LayerKind.TMPIFY
+            and status is not None
+            and MountState(status["state"]) is MountState.FOREIGN
+        )
+
+    def is_restored(self, status: StatusPayload) -> bool:
+        match MountState(status["state"]):
+            case MountState.NOT_FOUND | MountState.NOT_OVERLAY:
+                return True
+            case MountState.TMPIFIED:
+                return False
+            case MountState.FOREIGN:
+                if self.kind is LayerKind.TMPIFY:
+                    return True
+                upperdir = status["upperdir"]
+                return not (upperdir is not None and EPHEMERAL_WORKSPACE in upperdir)
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class StateStore:
+    """Minimal ownership record of layers entered by mutablectl, plus locking."""
+
+    state_dir: Path = Path("/run/mutablectl")
+
+    @property
+    def state_file(self) -> Path:
+        return self.state_dir / "state.json"
+
+    @contextlib.contextmanager
+    def lock(self) -> Generator[None]:
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+        with open(self.state_dir / "lock", "a+", encoding="utf-8") as handle:
+            fcntl.flock(handle, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle, fcntl.LOCK_UN)
+
+    def load(self) -> Mapping[str, LayerKind] | None:
+        """Return {target: kind} for active layers, or None if missing/corrupt."""
+        try:
+            payload = cast(
+                StatePayload,
+                cast(object, json.loads(self.state_file.read_text(encoding="utf-8"))),
+            )
+            return {
+                target: LayerKind(kind) for target, kind in payload["active"].items()
+            }
+        except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+            return None
+
+    def save(self, active: Mapping[str, LayerKind]) -> None:
+        if not active:
+            with contextlib.suppress(OSError):
+                self.state_file.unlink()
+            return
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+        tmp = self.state_file.with_name(f".{self.state_file.name}.tmp")
+        _ = tmp.write_text(
+            json.dumps({"active": dict(active)}, indent=2) + "\n", encoding="utf-8"
+        )
+        os.replace(tmp, self.state_file)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        prog="mutablectl",
+        description="Control the mutability layers of this system.",
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+    _ = sub.add_parser("enter", help="Enter the temporary RW mode.")
+    p_exit = sub.add_parser("exit", help="Leave the temporary RW mode.")
+    _ = p_exit.add_argument(
+        "--force",
+        action="store_true",
+        help="Clean up any detected tmpified layers even without a state file.",
+    )
+    p_unlock = sub.add_parser("unlock", help="Run a command with a writable /etc.")
+    unlock_mode = p_unlock.add_mutually_exclusive_group()
+    _ = unlock_mode.add_argument(
+        "-d",
+        "--directly",
+        action="store_true",
+        help="Unmerge confexts so that /etc itself is writable.",
+    )
+    _ = unlock_mode.add_argument(
+        "--ephemeral",
+        action="store_true",
+        help="Throw changes away when the command finishes.",
+    )
+    _ = p_unlock.add_argument("exe", help="The command to run.")
+    _ = p_unlock.add_argument(
+        "argv", nargs=argparse.REMAINDER, help="Arguments for the command."
+    )
+    p_status = sub.add_parser("status", help="Show the state of every layer.")
+    _ = p_status.add_argument(
+        "--json", action="store_true", help="Emit machine readable output."
+    )
+
+    args = parser.parse_args()
+
+    command = cast(str, args.command)
+
+    if command != "status" and os.geteuid() != 0:
+        raise PermissionError("mutablectl must be run as root")
+
+    if shutil.which("tmpify") is None:
+        raise FileNotFoundError("tmpify is not installed")
+
+    store = StateStore(Path(MUTABLECTL_STATE_DIR))
+
+    def fetch_status(target: str) -> StatusPayload:
+        raw = subprocess.run(
+            ["tmpify", "--status", target, "--json"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return cast(StatusPayload, cast(object, json.loads(raw.stdout)))
+
+    def apply(layer: Layer) -> None:
+        match layer.kind:
+            case LayerKind.CONFEXT:
+                _ = subprocess.run(
+                    [
+                        "systemd-confext",
+                        "refresh",
+                        "--noexec=no",
+                        "--mutable=ephemeral-import",
+                    ],
+                    check=True,
+                )
+            case LayerKind.SYSEXT:
+                _ = subprocess.run(
+                    ["systemd-sysext", "refresh", "--mutable=ephemeral-import"],
+                    check=True,
+                )
+            case LayerKind.TMPIFY:
+                _ = subprocess.run(["tmpify", layer.target], check=True)
+
+    def restore(layer: Layer) -> None:
+        if layer.is_restored(fetch_status(layer.target)):
+            return
+        match layer.kind:
+            case LayerKind.CONFEXT:
+                _ = subprocess.run(
+                    ["systemctl", "restart", "systemd-confext.service"], check=True
+                )
+            case LayerKind.SYSEXT:
+                _ = subprocess.run(
+                    ["systemctl", "restart", "systemd-sysext.service"], check=True
+                )
+            case LayerKind.TMPIFY:
+                _ = subprocess.run(["tmpify", "--restore", layer.target], check=True)
+
+    match command:
+        case "enter":
+            with store.lock():
+                active = store.load()
+                if active is None:
+                    if store.state_file.exists():
+                        raise RuntimeError(
+                            "State file is unusable; run 'mutablectl exit --force' first"
+                        )
+                    active = {}
+
+                layers = Layer.discover()
+                statuses = {
+                    layer.target: fetch_status(layer.target)
+                    for layer in layers
+                    if Path(layer.target).exists()
+                }
+                if conflicts := [
+                    layer.target
+                    for layer in layers
+                    if layer.is_conflict(statuses.get(layer.target))
+                ]:
+                    raise RuntimeError(
+                        f"Refusing to continue, foreign overlay on: {', '.join(conflicts)}"
+                    )
+
+                plan = tuple(
+                    layer
+                    for layer in layers
+                    if layer.need_enter(statuses.get(layer.target))
+                )
+                if not plan:
+                    logging.info("Already in RW mode, nothing to do.")
+                    return
+
+                applied: tuple[Layer, ...] = ()
+                for layer in plan:
+                    # Record before acting so a mid-flight crash is still recoverable.
+                    active = {**active, layer.target: layer.kind}
+                    store.save(active)
+                    try:
+                        apply(layer)
+                    except subprocess.CalledProcessError:
+                        # Roll back everything already applied in this run, LIFO.
+                        remaining = {
+                            t: k for t, k in active.items() if t != layer.target
+                        }
+                        for prev in reversed(applied):
+                            try:
+                                restore(prev)
+                                remaining = {
+                                    t: k
+                                    for t, k in remaining.items()
+                                    if t != prev.target
+                                }
+                            except subprocess.CalledProcessError as err:
+                                logging.error(
+                                    f"Rollback of {prev.target} failed: {err}"
+                                )
+                        store.save(remaining)
+                        raise
+                    applied = (*applied, layer)
+
+                logging.info("Successfully entered RW mode.")
+
+        case "exit":
+            with store.lock():
+                active = store.load()
+                if active is None:
+                    if not cast(bool, args.force):
+                        raise FileNotFoundError(
+                            "No usable state file found; use --force to clean up detected layers"
+                        )
+                    failures: list[str] = []
+                    for layer in reversed(Layer.discover()):
+                        if not Path(layer.target).exists():
+                            continue
+                        try:
+                            restore(layer)
+                        except subprocess.CalledProcessError as err:
+                            logging.error(f"Failed to restore {layer.target}: {err}")
+                            failures.append(layer.target)
+                    with contextlib.suppress(OSError):
+                        store.state_file.unlink()
+                    if failures:
+                        raise RuntimeError(f"Failed to restore: {', '.join(failures)}")
+                    logging.info("Exited RW mode.")
+                    return
+
+                remaining = dict(active)
+                for target, kind in reversed(tuple(active.items())):
+                    try:
+                        restore(Layer(target, kind))
+                        remaining = {t: k for t, k in remaining.items() if t != target}
+                    except subprocess.CalledProcessError as err:
+                        logging.error(f"Failed to restore {target}: {err}")
+                store.save(remaining)
+                if remaining:
+                    raise RuntimeError(
+                        f"Some layers could not be restored: {', '.join(remaining)}"
+                    )
+                logging.info("Exited RW mode.")
+
+        case "unlock":
+            exe = cast(str, args.exe)
+            cmd = (exe, *cast(Sequence[str], args.argv))
+            if shutil.which(exe) is None:
+                logging.error(f"{exe} is not found or not executable.")
+                sys.exit(127)
+
+            if os.access("/etc", os.W_OK):
+                sys.exit(subprocess.run(cmd).returncode)
+
+            if not CONFEXT_MARKER.is_dir():
+                raise RuntimeError(
+                    "/etc is not managed by systemd-confext, nothing to unlock"
+                )
+
+            def on_signal(signum: int, _frame: FrameType | None) -> None:
+                sys.exit(128 + signum)
+
+            for sig in (signal.SIGTERM, signal.SIGHUP):
+                _ = signal.signal(sig, on_signal)
+
+            try:
+                _ = subprocess.run(
+                    (
+                        ["systemd-confext", "unmerge"]
+                        if cast(bool, args.directly)
+                        else [
+                            "systemd-confext",
+                            "refresh",
+                            "--mutable=ephemeral-import",
+                        ]
+                        if cast(bool, args.ephemeral)
+                        else [
+                            "systemd-confext",
+                            "refresh",
+                            "--mutable=yes",
+                            "--noexec=no",
+                        ]
+                    ),
+                    check=True,
+                )
+                sys.exit(subprocess.run(cmd).returncode)
+            finally:
+                _ = subprocess.run(
+                    ["systemctl", "restart", "systemd-confext.service"], check=False
+                )
+
+        case "status":
+            layers = Layer.discover()
+            active = store.load()
+            rows: list[LayerReport] = [
+                {
+                    "target": layer.target,
+                    "kind": layer.kind,
+                    "state": (
+                        fetch_status(layer.target)["state"]
+                        if Path(layer.target).exists()
+                        else MountState.NOT_FOUND
+                    ),
+                    "active": layer.target in active if active else False,
+                }
+                for layer in layers
+            ]
+            if cast(bool, args.json):
+                report: ReportPayload = {"layers": rows}
+                print(json.dumps(report, indent=2))
+            else:
+                for r in rows:
+                    print(f"{r['target']}: {r['state']}")
+
+        case _:
+            parser.print_help()
+
+
+if __name__ == "__main__":
+    main()
