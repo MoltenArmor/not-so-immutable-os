@@ -63,8 +63,6 @@ if ! systemctl reload-or-restart systemd-sysext.service systemd-confext.service;
     printf '%s\n' 'Warning: Failed to reload systemd-sysext.service / systemd-confext.service.' >&2
 fi
 
-systemd-tmpfiles --create
-systemctl preset-all
-systemctl --global preset-all
+mutablectl unlock bash -c "systemd-tmpfiles --create && systemctl preset-all && systemctl --global preset-all"
 
 printf '%s\n' 'Import done!'
