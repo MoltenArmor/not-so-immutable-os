@@ -1,0 +1,9 @@
+{
+    "userName": "pipewire",
+    "uid": 179,
+    "gid": 179,
+    "realName": "system user for pipewire",
+    "homeDirectory": "/nonexistent",
+    "shell": "/usr/sbin/nologin",
+    "storage": "classic"
+}
