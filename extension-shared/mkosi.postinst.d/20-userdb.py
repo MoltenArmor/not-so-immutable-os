@@ -163,12 +163,11 @@ def resolve_base_trees(config: Path, src_root: Path) -> tuple[Path, ...]:
     for item in cast(list[object], raw_trees):
         if not isinstance(item, str):
             continue
-        host_path = Path(item)
         mapped = next(
             (
                 cand
                 for host_src, sandbox_dst in src_mappings
-                if host_path.is_relative_to(host_src)
+                if (host_path := Path(item)).is_relative_to(host_src)
                 and (cand := sandbox_dst / host_path.relative_to(host_src)).is_dir()
             ),
             host_path if host_path.is_dir() else None,
