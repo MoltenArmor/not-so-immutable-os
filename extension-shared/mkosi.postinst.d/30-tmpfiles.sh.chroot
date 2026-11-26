@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+SYSTEMD_TMPFILES_FORCE_SUBVOL=0 \
+    systemd-tmpfiles \
+    --boot \
+    --create \
+    --remove \
+    --prefix=/etc || {
+        RET="${?}"
+        test "${RET}" -eq 65 ||
+        test "${RET}" -eq 73
+    }

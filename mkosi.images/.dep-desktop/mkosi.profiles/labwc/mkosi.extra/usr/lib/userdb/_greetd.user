@@ -1,9 +1,0 @@
-{
-    "userName": "_greetd",
-    "uid": 253,
-    "gid": 253,
-    "realName": "greetd",
-    "homeDirectory": "/var/lib/greetd",
-    "shell": "/usr/sbin/nologin",
-    "storage": "classic"
-}

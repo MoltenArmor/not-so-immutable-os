@@ -1,9 +1,0 @@
-{
-    "userName": "_flatpak",
-    "uid": 177,
-    "gid": 177,
-    "realName": "Flatpak system helper",
-    "homeDirectory": "/nonexistent",
-    "shell": "/usr/sbin/nologin",
-    "storage": "classic"
-}

@@ -1,9 +1,0 @@
-{
-    "userName": "colord",
-    "uid": 172,
-    "gid": 172,
-    "realName": "Colord Color Management Daemon",
-    "homeDirectory": "/var/lib/colord",
-    "shell": "/usr/sbin/nologin",
-    "storage": "classic"
-}
