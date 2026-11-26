@@ -5,5 +5,6 @@
     "realName": "Libvirt QEMU user",
     "homeDirectory": "/nonexistent",
     "shell": "/usr/sbin/nologin",
+    "disposition": "system",
     "storage": "classic"
 }
